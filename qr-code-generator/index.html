@@ -150,35 +150,34 @@
             border-radius: 50%;
             cursor: pointer;
         }
-        /* Improved Responsiveness */
         @media (max-width: 768px) {
             .options {
-                grid-template-columns: 1fr; /* Single column on tablets and smaller */
+                grid-template-columns: 1fr;
             }
             .action-buttons {
                 flex-direction: column;
             }
             h1 {
-                font-size: 24px; /* Smaller heading on tablets */
+                font-size: 24px;
             }
             .color-picker label {
-                font-size: 12px; /* Smaller labels */
+                font-size: 12px;
             }
             input[type="text"], select, input[type="file"] {
-                font-size: 14px; /* Smaller input text */
+                font-size: 14px;
             }
             button {
-                padding: 14px; /* Larger touch target */
+                padding: 14px;
                 font-size: 14px;
-                min-height: 48px; /* Better touch target */
+                min-height: 48px;
             }
             .container {
-                padding: 20px; /* Reduced padding on smaller screens */
+                padding: 20px;
             }
         }
         @media (max-width: 480px) {
             body {
-                padding: 10px; /* Reduced padding on mobile */
+                padding: 10px;
             }
             .toggle-mode {
                 top: 10px;
@@ -186,7 +185,7 @@
                 padding: 8px;
             }
             h1 {
-                font-size: 20px; /* Even smaller heading on mobile */
+                font-size: 20px;
             }
             .color-picker label {
                 font-size: 10px;
@@ -369,6 +368,9 @@
                     correctLevel: QRCode.CorrectLevel[errorCorrection]
                 });
 
+                // Save to history when a QR code is generated
+                saveToHistory(text);
+
                 setTimeout(() => {
                     if (logoImage) addLogoToQR();
                     gsap.from("#qrcode", { opacity: 0, scale: 0.8, duration: 0.5, ease: "back.out(1.7)" });
@@ -407,6 +409,10 @@
             const qrCanvas = document.querySelector("#qrcode canvas");
             if (!qrCanvas) return alert("Generate a QR code first!");
 
+            // Save to history when a QR code is downloaded
+            const text = document.getElementById("text").value;
+            saveToHistory(text);
+
             if (format === "png") {
                 const link = document.createElement("a");
                 link.href = qrCanvas.toDataURL("image/png");
@@ -437,6 +443,11 @@
         function shareQR() {
             const qrCanvas = document.querySelector("#qrcode canvas");
             if (!qrCanvas) return alert("Generate a QR code first!");
+
+            // Save to history when a QR code is shared
+            const text = document.getElementById("text").value;
+            saveToHistory(text);
+
             qrCanvas.toBlob(blob => {
                 const file = new File([blob], "qrcode.png", { type: "image/png" });
                 if (navigator.share) {
@@ -478,7 +489,7 @@
             });
         }
 
-        // Save to history on Enter key
+        // Save to history on Enter key (optional, since we're now saving on generate/download/share)
         document.getElementById("text").addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 const text = document.getElementById("text").value;
