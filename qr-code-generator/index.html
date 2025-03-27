@@ -6,7 +6,8 @@
     <title>QR Code Generator - Pro Edition</title>
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://unpkg.com/qrcode-styling@1.6.0-rc.1/lib/qrcode-styling.js"></script>
+    <!-- Use a more reliable CDN and stable version -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-styling@1.6.0-rc.1/lib/qrcode-styling.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -110,7 +111,6 @@
             justify-content: center;
             align-items: center;
             border: 1px dashed #ddd;
-            /* Remove fixed dimensions to allow dynamic sizing */
             min-height: 200px;
         }
         .action-buttons {
@@ -338,9 +338,32 @@
         let qrColor = "#000000";
         let bgColor = "#ffffff";
         let qrCodeInstance = null;
+        let isQrLibraryLoaded = false;
 
-        // Initialize Spectrum.js color pickers
-        document.addEventListener("DOMContentLoaded", () => {
+        // Wait for QRCodeStyling to load
+        function waitForQrLibrary() {
+            return new Promise((resolve, reject) => {
+                const maxAttempts = 20;
+                let attempts = 0;
+
+                const checkLibrary = () => {
+                    if (typeof QRCodeStyling !== "undefined") {
+                        isQrLibraryLoaded = true;
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error("QRCodeStyling library failed to load after maximum attempts."));
+                    } else {
+                        attempts++;
+                        setTimeout(checkLibrary, 500);
+                    }
+                };
+
+                checkLibrary();
+            });
+        }
+
+        // Initialize Spectrum.js color pickers and wait for QR library
+        document.addEventListener("DOMContentLoaded", async () => {
             if (typeof $.fn.spectrum === "undefined") {
                 console.error("Spectrum.js failed to load. Please check if jQuery and Spectrum.js are properly included.");
                 return;
@@ -402,6 +425,18 @@
 
             enforceHash("qrColorPicker");
             enforceHash("bgColorPicker");
+
+            // Wait for QRCodeStyling to load
+            try {
+                await waitForQrLibrary();
+                console.log("QRCodeStyling library loaded successfully.");
+            } catch (error) {
+                console.error(error.message);
+                document.getElementById("qrcode").innerHTML = `
+                    <p>Error: Failed to load QR code library. 
+                    <button onclick="location.reload()">Retry</button></p>
+                `;
+            }
         });
 
         // Toggle between light and dark mode
@@ -419,9 +454,12 @@
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
                 // Check if QRCodeStyling is available
-                if (typeof QRCodeStyling === "undefined") {
-                    console.error("QRCodeStyling library not loaded.");
-                    document.getElementById("qrcode").innerHTML = "<p>Error: QR code library not loaded.</p>";
+                if (!isQrLibraryLoaded) {
+                    console.error("QRCodeStyling library not loaded yet.");
+                    document.getElementById("qrcode").innerHTML = `
+                        <p>QR code library not loaded. 
+                        <button onclick="location.reload()">Retry</button></p>
+                    `;
                     return;
                 }
 
