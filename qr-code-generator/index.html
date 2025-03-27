@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator - Pro Edition</title>
+    <!-- Libraries -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script> <!-- Added jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Spectrum.js for modern color pickers -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+        }
+        body.light {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+        }
+        body.dark {
+            background: linear-gradient(135deg, #1e1e1e 0%, #3a3a3a 100%);
+            color: #fff;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        body.dark .container {
+            background: #2a2a2a;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"], select, input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        body.dark input[type="text"], body.dark select {
+            background: #3a3a3a;
+            border-color: #555;
+            color: #fff;
+        }
+        input[type="text"]:focus {
+            border-color: #6200ea;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .color-picker {
+            margin: 10px 0;
+        }
+        .color-picker label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .spectrum-container {
+            width: 100%;
+        }
+        button {
+            background: #6200ea;
+            color: #fff;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: #3700b3;
+        }
+        #qrcode {
+            margin: 20px auto;
+            text-align: center;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .download-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .download-options select {
+            width: auto;
+        }
+        .download-btn {
+            background: #00c853;
+        }
+        .share-btn {
+            background: #0288d1;
+        }
+        .history {
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+        }
+        body.dark .history-item {
+            border-color: #555;
+        }
+        .toggle-mode {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: #6200ea;
+            color: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        @media (max-width: 480px) {
+            .options {
+                grid-template-columns: 1fr;
+            }
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body class="light">
+    <button class="toggle-mode" onclick="toggleMode()">🌙</button>
+    <div class="container">
+        <h1>QR Code Generator Pro</h1>
+        <div class="input-group">
+            <input type="text" id="text" placeholder="Enter text or URL" oninput="autoGenerateQR()" />
+        </div>
+        <div class="options">
+            <select id="size">
+                <option value="100">100x100</option>
+                <option value="200" selected>200x200</option>
+                <option value="300">300x300</option>
+            </select>
+            <select id="errorCorrection">
+                <option value="L">Low</option>
+                <option value="M" selected>Medium</option>
+                <option value="Q">Quartile</option>
+                <option value="H">High</option>
+            </select>
+            <div class="color-picker">
+                <label>QR Code Color:</label>
+                <input type="text" id="qrColorPicker" value="#000000" />
+            </div>
+            <div class="color-picker">
+                <label>Background Color:</label>
+                <input type="text" id="bgColorPicker" value="#ffffff" />
+            </div>
+            <input type="file" id="logo" accept="image/*" onchange="previewLogo()" />
+        </div>
+        <div id="qrcode"></div>
+        <div class="action-buttons">
+            <div class="download-options">
+                <select id="downloadFormat">
+                    <option value="png">PNG</option>
+                    <option value="jpg">JPG</option>
+                    <option value="pdf">PDF</option>
+                    <option value="svg">SVG</option>
+                </select>
+                <button class="download-btn" onclick="downloadQR()">Download QR Code</button>
+            </div>
+            <button class="share-btn" onclick="shareQR()">Share QR Code</button>
+        </div>
+        <div class="history" id="history"></div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let qrHistory = JSON.parse(localStorage.getItem("qrHistory")) || [];
+        let logoImage = null;
+        let debounceTimeout;
+        let qrColor = "#000000";
+        let bgColor = "#ffffff";
+
+        // Initialize Spectrum.js color pickers
+        document.addEventListener("DOMContentLoaded", () => {
+            $("#qrColorPicker").spectrum({
+                color: qrColor,
+                showInput: true,
+                showAlpha: false,
+                showPalette: true,
+                palette: [
+                    ["#000", "#444", "#666", "#999", "#ccc", "#eee", "#f3f3f3", "#fff"],
+                    ["#f00", "#f90", "#ff0", "#0f0", "#0ff", "#00f", "#90f", "#f0f"]
+                ],
+                preferredFormat: "hex",
+                showInitial: true,
+                showButtons: true,
+                allowEmpty: false,
+                change: (color) => {
+                    qrColor = color.toHexString();
+                    console.log("QR Color Changed:", qrColor);
+                    autoGenerateQR();
+                },
+                move: (color) => {
+                    qrColor = color.toHexString();
+                    console.log("QR Color Moving:", qrColor);
+                    autoGenerateQR();
+                }
+            });
+
+            $("#bgColorPicker").spectrum({
+                color: bgColor,
+                showInput: true,
+                showAlpha: false,
+                showPalette: true,
+                palette: [
+                    ["#000", "#444", "#666", "#999", "#ccc", "#eee", "#f3f3f3", "#fff"],
+                    ["#f00", "#f90", "#ff0", "#0f0", "#0ff", "#00f", "#90f", "#f0f"]
+                ],
+                preferredFormat: "hex",
+                showInitial: true,
+                showButtons: true,
+                allowEmpty: false,
+                change: (color) => {
+                    bgColor = color.toHexString();
+                    console.log("BG Color Changed:", bgColor);
+                    autoGenerateQR();
+                },
+                move: (color) => {
+                    bgColor = color.toHexString();
+                    console.log("BG Color Moving:", bgColor);
+                    autoGenerateQR();
+                }
+            });
+
+            // Ensure the # is always present in the input
+            const enforceHash = (inputId) => {
+                const input = document.getElementById(inputId);
+                input.addEventListener("input", () => {
+                    let value = input.value;
+                    if (!value.startsWith("#")) {
+                        value = "#" + value.replace(/^#+/, "");
+                        input.value = value;
+                    }
+                    if (value.length > 7) {
+                        value = value.substring(0, 7);
+                        input.value = value;
+                    }
+                });
+            };
+
+            enforceHash("qrColorPicker");
+            enforceHash("bgColorPicker");
+        });
+
+        // Toggle between light and dark mode
+        function toggleMode() {
+            document.body.classList.toggle("light");
+            document.body.classList.toggle("dark");
+            document.querySelector(".toggle-mode").textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+        }
+
+        // Generate QR code with debounce
+        function autoGenerateQR() {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                const text = document.getElementById("text").value;
+                const size = document.getElementById("size").value;
+                const errorCorrection = document.getElementById("errorCorrection").value;
+
+                if (!text) {
+                    document.getElementById("qrcode").innerHTML = "";
+                    return;
+                }
+
+                // Ensure colors are valid hex values
+                const validQrColor = qrColor.startsWith("#") && qrColor.length === 7 ? qrColor : "#000000";
+                const validBgColor = bgColor.startsWith("#") && bgColor.length === 7 ? bgColor : "#ffffff";
+
+                console.log("Generating QR with:", { text, size, errorCorrection, colorDark: validQrColor, colorLight: validBgColor });
+
+                document.getElementById("qrcode").innerHTML = "";
+                const qr = new QRCode(document.getElementById("qrcode"), {
+                    text: text,
+                    width: parseInt(size),
+                    height: parseInt(size),
+                    colorDark: validQrColor,
+                    colorLight: validBgColor,
+                    correctLevel: QRCode.CorrectLevel[errorCorrection]
+                });
+
+                setTimeout(() => {
+                    if (logoImage) addLogoToQR();
+                    gsap.from("#qrcode", { opacity: 0, scale: 0.8, duration: 0.5, ease: "back.out(1.7)" });
+                }, 100);
+            }, 100); // Reduced debounce time for faster updates
+        }
+
+        // Handle logo upload and preview
+        function previewLogo() {
+            const file = document.getElementById("logo").files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    logoImage = new Image();
+                    logoImage.src = e.target.result;
+                    autoGenerateQR();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Add logo to the center of the QR code
+        function addLogoToQR() {
+            const canvas = document.querySelector("#qrcode canvas");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const logoSize = canvas.width / 4;
+            const x = (canvas.width - logoSize) / 2;
+            const y = (canvas.height - logoSize) / 2;
+            ctx.drawImage(logoImage, x, y, logoSize, logoSize);
+        }
+
+        // Download QR code in selected format
+        function downloadQR() {
+            const format = document.getElementById("downloadFormat").value;
+            const qrCanvas = document.querySelector("#qrcode canvas");
+            if (!qrCanvas) return alert("Generate a QR code first!");
+
+            if (format === "png") {
+                const link = document.createElement("a");
+                link.href = qrCanvas.toDataURL("image/png");
+                link.download = "qrcode.png";
+                link.click();
+            } else if (format === "jpg") {
+                html2canvas(qrCanvas).then(canvas => {
+                    const link = document.createElement("a");
+                    link.href = canvas.toDataURL("image/jpeg");
+                    link.download = "qrcode.jpg";
+                    link.click();
+                });
+            } else if (format === "pdf") {
+                const { width, height } = qrCanvas;
+                const pdf = new jsPDF({
+                    orientation: width > height ? "landscape" : "portrait",
+                    unit: "px",
+                    format: [width, height]
+                });
+                pdf.addImage(qrCanvas.toDataURL("image/png"), "PNG", 0, 0, width, height);
+                pdf.save("qrcode.pdf");
+            } else if (format === "svg") {
+                alert("SVG export requires additional setup. Consider using a library like 'qrcode-svg'.");
+            }
+        }
+
+        // Share QR code using Web Share API
+        function shareQR() {
+            const qrCanvas = document.querySelector("#qrcode canvas");
+            if (!qrCanvas) return alert("Generate a QR code first!");
+            qrCanvas.toBlob(blob => {
+                const file = new File([blob], "qrcode.png", { type: "image/png" });
+                if (navigator.share) {
+                    navigator.share({
+                        files: [file],
+                        title: "QR Code",
+                        text: "Check out my QR code!"
+                    });
+                } else {
+                    alert("Sharing not supported on this browser.");
+                }
+            });
+        }
+
+        // Save QR code text to history
+        function saveToHistory(text) {
+            if (text && !qrHistory.includes(text)) {
+                qrHistory.unshift(text);
+                qrHistory = qrHistory.slice(0, 5);
+                localStorage.setItem("qrHistory", JSON.stringify(qrHistory));
+                updateHistoryUI();
+            }
+        }
+
+        // Update history UI
+        function updateHistoryUI() {
+            const historyDiv = document.getElementById("history");
+            historyDiv.innerHTML = "<h3>Recent QR Codes</h3>";
+            qrHistory.forEach((item, index) => {
+                const div = document.createElement("div");
+                div.className = "history-item";
+                div.textContent = item.substring(0, 30) + (item.length > 30 ? "..." : "");
+                div.onclick = () => {
+                    document.getElementById("text").value = item;
+                    autoGenerateQR();
+                };
+                historyDiv.appendChild(div);
+                gsap.from(div, { opacity: 0, y: 20, duration: 0.5, delay: index * 0.1 });
+            });
+        }
+
+        // Save to history on Enter key
+        document.getElementById("text").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                const text = document.getElementById("text").value;
+                saveToHistory(text);
+            }
+        });
+
+        // Initial history load and animations
+        updateHistoryUI();
+        gsap.from(".toggle-mode", { opacity: 0, y: -20, duration: 0.5 });
+        gsap.from(".container", { opacity: 0, scale: 0.9, duration: 0.7, ease: "power2.out" });
+    </script>
+</body>
+</html>
