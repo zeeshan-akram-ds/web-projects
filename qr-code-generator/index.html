@@ -6,7 +6,8 @@
     <title>QR Code Generator - Pro Edition</title>
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Replace qrcode.js with qrcode-styling for custom patterns -->
+    <script src="https://unpkg.com/qrcode-styling@1.6.0-rc.1/lib/qrcode-styling.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -112,6 +113,7 @@
             gap: 10px;
             justify-content: center;
             margin-top: 10px;
+            position: relative;
         }
         .download-options {
             display: flex;
@@ -132,13 +134,39 @@
             max-height: 150px;
             overflow-y: auto;
         }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .clear-history-btn {
+            background: #ff4444;
+            padding: 8px;
+            font-size: 12px;
+        }
+        .clear-history-btn:hover {
+            background: #cc0000;
+            transform: scale(1.05);
+        }
         .history-item {
             padding: 10px;
             border-bottom: 1px solid #ddd;
             cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .history-item .timestamp {
+            font-size: 10px;
+            color: #888;
         }
         body.dark .history-item {
             border-color: #555;
+        }
+        body.dark .history-item .timestamp {
+            color: #bbb;
         }
         .toggle-mode {
             position: absolute;
@@ -149,6 +177,24 @@
             color: #fff;
             border-radius: 50%;
             cursor: pointer;
+        }
+        /* Loading Spinner */
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #6200ea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
         @media (max-width: 768px) {
             .options {
@@ -200,6 +246,12 @@
             .container {
                 padding: 15px;
             }
+            .history-item {
+                font-size: 12px;
+            }
+            .history-item .timestamp {
+                font-size: 8px;
+            }
         }
     </style>
 </head>
@@ -230,6 +282,11 @@
                 <label>Background Color:</label>
                 <input type="text" id="bgColorPicker" value="#ffffff" />
             </div>
+            <select id="qrPattern">
+                <option value="squares" selected>Squares</option>
+                <option value="dots">Dots</option>
+                <option value="rounded">Rounded</option>
+            </select>
             <input type="file" id="logo" accept="image/*" onchange="previewLogo()" />
         </div>
         <div id="qrcode"></div>
@@ -244,8 +301,14 @@
                 <button class="download-btn" onclick="downloadQR()">Download QR Code</button>
             </div>
             <button class="share-btn" onclick="shareQR()">Share QR Code</button>
+            <div class="loading-spinner" id="loadingSpinner"></div>
         </div>
-        <div class="history" id="history"></div>
+        <div class="history" id="history">
+            <div class="history-header">
+                <h3>Recent QR Codes</h3>
+                <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -331,6 +394,9 @@
 
             enforceHash("qrColorPicker");
             enforceHash("bgColorPicker");
+
+            // Add event listener for pattern change
+            document.getElementById("qrPattern").addEventListener("change", autoGenerateQR);
         });
 
         // Toggle between light and dark mode
@@ -347,6 +413,7 @@
                 const text = document.getElementById("text").value;
                 const size = document.getElementById("size").value;
                 const errorCorrection = document.getElementById("errorCorrection").value;
+                const pattern = document.getElementById("qrPattern").value;
 
                 if (!text) {
                     document.getElementById("qrcode").innerHTML = "";
@@ -356,17 +423,26 @@
                 const validQrColor = qrColor.startsWith("#") && qrColor.length === 7 ? qrColor : "#000000";
                 const validBgColor = bgColor.startsWith("#") && bgColor.length === 7 ? bgColor : "#ffffff";
 
-                console.log("Generating QR with:", { text, size, errorCorrection, colorDark: validQrColor, colorLight: validBgColor });
+                console.log("Generating QR with:", { text, size, errorCorrection, colorDark: validQrColor, colorLight: validBgColor, pattern });
 
                 document.getElementById("qrcode").innerHTML = "";
-                const qr = new QRCode(document.getElementById("qrcode"), {
-                    text: text,
+                const qrCode = new QRCodeStyling({
                     width: parseInt(size),
                     height: parseInt(size),
-                    colorDark: validQrColor,
-                    colorLight: validBgColor,
-                    correctLevel: QRCode.CorrectLevel[errorCorrection]
+                    data: text,
+                    dotsOptions: {
+                        color: validQrColor,
+                        type: pattern === "dots" ? "dots" : pattern === "rounded" ? "rounded" : "square"
+                    },
+                    backgroundOptions: {
+                        color: validBgColor
+                    },
+                    qrOptions: {
+                        errorCorrectionLevel: errorCorrection
+                    }
                 });
+
+                qrCode.append(document.getElementById("qrcode"));
 
                 // Save to history when a QR code is generated
                 saveToHistory(text);
@@ -403,8 +479,20 @@
             ctx.drawImage(logoImage, x, y, logoSize, logoSize);
         }
 
+        // Show loading spinner
+        function showLoadingSpinner() {
+            document.getElementById("loadingSpinner").style.display = "block";
+            document.querySelectorAll(".action-buttons button").forEach(btn => btn.disabled = true);
+        }
+
+        // Hide loading spinner
+        function hideLoadingSpinner() {
+            document.getElementById("loadingSpinner").style.display = "none";
+            document.querySelectorAll(".action-buttons button").forEach(btn => btn.disabled = false);
+        }
+
         // Download QR code in selected format
-        function downloadQR() {
+        async function downloadQR() {
             const format = document.getElementById("downloadFormat").value;
             const qrCanvas = document.querySelector("#qrcode canvas");
             if (!qrCanvas) return alert("Generate a QR code first!");
@@ -413,34 +501,54 @@
             const text = document.getElementById("text").value;
             saveToHistory(text);
 
-            if (format === "png") {
-                const link = document.createElement("a");
-                link.href = qrCanvas.toDataURL("image/png");
-                link.download = "qrcode.png";
-                link.click();
-            } else if (format === "jpg") {
-                html2canvas(qrCanvas).then(canvas => {
+            showLoadingSpinner();
+
+            try {
+                if (format === "png") {
+                    const link = document.createElement("a");
+                    link.href = qrCanvas.toDataURL("image/png");
+                    link.download = "qrcode.png";
+                    link.click();
+                } else if (format === "jpg") {
+                    const canvas = await html2canvas(qrCanvas);
                     const link = document.createElement("a");
                     link.href = canvas.toDataURL("image/jpeg");
                     link.download = "qrcode.jpg";
                     link.click();
-                });
-            } else if (format === "pdf") {
-                const { width, height } = qrCanvas;
-                const pdf = new jsPDF({
-                    orientation: width > height ? "landscape" : "portrait",
-                    unit: "px",
-                    format: [width, height]
-                });
-                pdf.addImage(qrCanvas.toDataURL("image/png"), "PNG", 0, 0, width, height);
-                pdf.save("qrcode.pdf");
-            } else if (format === "svg") {
-                alert("SVG export requires additional setup. Consider using a library like 'qrcode-svg'.");
+                } else if (format === "pdf") {
+                    const { width, height } = qrCanvas;
+                    const pdf = new jsPDF({
+                        orientation: width > height ? "landscape" : "portrait",
+                        unit: "px",
+                        format: [width, height]
+                    });
+                    pdf.addImage(qrCanvas.toDataURL("image/png"), "PNG", 0, 0, width, height);
+                    pdf.save("qrcode.pdf");
+                } else if (format === "svg") {
+                    const qrCode = new QRCodeStyling({
+                        width: parseInt(document.getElementById("size").value),
+                        height: parseInt(document.getElementById("size").value),
+                        data: text,
+                        dotsOptions: {
+                            color: qrColor,
+                            type: document.getElementById("qrPattern").value === "dots" ? "dots" : document.getElementById("qrPattern").value === "rounded" ? "rounded" : "square"
+                        },
+                        backgroundOptions: {
+                            color: bgColor
+                        },
+                        qrOptions: {
+                            errorCorrectionLevel: document.getElementById("errorCorrection").value
+                        }
+                    });
+                    qrCode.download({ name: "qrcode", extension: "svg" });
+                }
+            } finally {
+                hideLoadingSpinner();
             }
         }
 
         // Share QR code using Web Share API
-        function shareQR() {
+        async function shareQR() {
             const qrCanvas = document.querySelector("#qrcode canvas");
             if (!qrCanvas) return alert("Generate a QR code first!");
 
@@ -448,10 +556,13 @@
             const text = document.getElementById("text").value;
             saveToHistory(text);
 
-            qrCanvas.toBlob(blob => {
+            showLoadingSpinner();
+
+            try {
+                const blob = await new Promise(resolve => qrCanvas.toBlob(resolve));
                 const file = new File([blob], "qrcode.png", { type: "image/png" });
                 if (navigator.share) {
-                    navigator.share({
+                    await navigator.share({
                         files: [file],
                         title: "QR Code",
                         text: "Check out my QR code!"
@@ -459,29 +570,47 @@
                 } else {
                     alert("Sharing not supported on this browser.");
                 }
-            });
+            } finally {
+                hideLoadingSpinner();
+            }
         }
 
-        // Save QR code text to history
+        // Save QR code text to history with timestamp
         function saveToHistory(text) {
-            if (text && !qrHistory.includes(text)) {
-                qrHistory.unshift(text);
+            if (text && !qrHistory.some(entry => entry.text === text)) {
+                const timestamp = new Date().toLocaleString();
+                qrHistory.unshift({ text, timestamp });
                 qrHistory = qrHistory.slice(0, 5);
                 localStorage.setItem("qrHistory", JSON.stringify(qrHistory));
                 updateHistoryUI();
             }
         }
 
+        // Clear history
+        function clearHistory() {
+            qrHistory = [];
+            localStorage.setItem("qrHistory", JSON.stringify(qrHistory));
+            updateHistoryUI();
+        }
+
         // Update history UI
         function updateHistoryUI() {
             const historyDiv = document.getElementById("history");
-            historyDiv.innerHTML = "<h3>Recent QR Codes</h3>";
-            qrHistory.forEach((item, index) => {
+            historyDiv.innerHTML = `
+                <div class="history-header">
+                    <h3>Recent QR Codes</h3>
+                    <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
+                </div>
+            `;
+            qrHistory.forEach((entry, index) => {
                 const div = document.createElement("div");
                 div.className = "history-item";
-                div.textContent = item.substring(0, 30) + (item.length > 30 ? "..." : "");
+                div.innerHTML = `
+                    <span>${entry.text.substring(0, 30) + (entry.text.length > 30 ? "..." : "")}</span>
+                    <span class="timestamp">${entry.timestamp}</span>
+                `;
                 div.onclick = () => {
-                    document.getElementById("text").value = item;
+                    document.getElementById("text").value = entry.text;
                     autoGenerateQR();
                 };
                 historyDiv.appendChild(div);
@@ -489,7 +618,7 @@
             });
         }
 
-        // Save to history on Enter key (optional, since we're now saving on generate/download/share)
+        // Save to history on Enter key (optional)
         document.getElementById("text").addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 const text = document.getElementById("text").value;
