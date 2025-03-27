@@ -7,7 +7,7 @@
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Use a stable version of qrcode-styling -->
-    <script src="https://unpkg.com/qrcode-styling@1.6.0/lib/qrcode-styling.js"></script>
+    <script src="https://unpkg.com/qrcode-styling@1.6.0/lib/qrcode-styling.js" onerror="handleLibraryLoadError()"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -111,7 +111,9 @@
             justify-content: center;
             align-items: center;
             border: 1px dashed #ddd;
-            min-height: 200px;
+            /* Set default size to match the default select option */
+            width: 200px;
+            height: 200px;
         }
         .action-buttons {
             display: flex;
@@ -267,7 +269,7 @@
         <h1>QR Code Generator Pro</h1>
         <div class="input-group">
             <label for="text" class="sr-only">Enter text or URL</label>
-            <input type="text" id="text" placeholder="Enter text or URL" aria-label="Enter text or URL for QR code" oninput="autoGenerateQR()" />
+            <input type="text" id="text" placeholder="Enter text or URL" value="https://example.com" aria-label="Enter text or URL for QR code" oninput="autoGenerateQR()" />
         </div>
         <div class="options">
             <label for="size" class="sr-only">QR Code Size</label>
@@ -296,7 +298,7 @@
 
             <label for="qrPattern" class="sr-only">QR Pattern Style</label>
             <select id="qrPattern" aria-label="Select QR code pattern style" onchange="autoGenerateQR()">
-                <option value="squares" selected>Squares</option>
+                <option value="square" selected>Square</option>
                 <option value="dots">Dots</option>
                 <option value="rounded">Rounded</option>
             </select>
@@ -339,13 +341,27 @@
         let bgColor = "#ffffff";
         let qrCodeInstance = null;
 
-        // Wait for the library to load
-        function waitForLibrary(callback) {
-            if (typeof QRCodeStyling !== "undefined") {
-                callback();
-            } else {
-                setTimeout(() => waitForLibrary(callback), 100);
+        // Handle library load error
+        function handleLibraryLoadError() {
+            console.error("Failed to load QRCodeStyling library from CDN.");
+            document.getElementById("qrcode").innerHTML = "<p>Error: Unable to load QR code library. Please check your internet connection and try again.</p>";
+        }
+
+        // Wait for the library to load with a timeout
+        function waitForLibrary(callback, timeout = 5000) {
+            const startTime = Date.now();
+            function checkLibrary() {
+                if (typeof QRCodeStyling !== "undefined") {
+                    console.log("QRCodeStyling library loaded successfully.");
+                    callback();
+                } else if (Date.now() - startTime > timeout) {
+                    console.error("Timeout: QRCodeStyling library failed to load within", timeout / 1000, "seconds.");
+                    document.getElementById("qrcode").innerHTML = "<p>Error: QR code library failed to load. Please refresh the page.</p>";
+                } else {
+                    setTimeout(checkLibrary, 100);
+                }
             }
+            checkLibrary();
         }
 
         // Initialize Spectrum.js color pickers
@@ -411,6 +427,9 @@
 
             enforceHash("qrColorPicker");
             enforceHash("bgColorPicker");
+
+            // Generate initial QR code
+            autoGenerateQR();
         });
 
         // Toggle between light and dark mode
@@ -431,7 +450,7 @@
                     const text = document.getElementById("text").value.trim();
                     const size = parseInt(document.getElementById("size").value) || 200;
                     const errorCorrection = document.getElementById("errorCorrection").value || "M";
-                    const pattern = document.getElementById("qrPattern").value || "squares";
+                    const pattern = document.getElementById("qrPattern").value || "square";
 
                     const qrContainer = document.getElementById("qrcode");
                     qrContainer.innerHTML = ""; // Clear previous QR code
@@ -540,7 +559,7 @@
                         data: text,
                         dotsOptions: {
                             color: qrColor,
-                            type: document.getElementById("qrPattern").value || "squares"
+                            type: document.getElementById("qrPattern").value || "square"
                         },
                         backgroundOptions: {
                             color: bgColor
