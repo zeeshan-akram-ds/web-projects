@@ -6,8 +6,7 @@
     <title>QR Code Generator - Pro Edition</title>
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Use a more reliable CDN and stable version -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-styling@1.6.0-rc.1/lib/qrcode-styling.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-styling@1.6.0/lib/qrcode-styling.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -112,6 +111,7 @@
             align-items: center;
             border: 1px dashed #ddd;
             min-height: 200px;
+            min-width: 200px;
         }
         .action-buttons {
             display: flex;
@@ -201,6 +201,13 @@
         @keyframes spin {
             0% { transform: translate(-50%, -50%) rotate(0deg); }
             100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        /* Error message */
+        .error-message {
+            color: #ff4444;
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
         }
         @media (max-width: 768px) {
             .options {
@@ -296,7 +303,7 @@
 
             <label for="qrPattern" class="sr-only">QR Pattern Style</label>
             <select id="qrPattern" aria-label="Select QR code pattern style" onchange="autoGenerateQR()">
-                <option value="squares" selected>Squares</option>
+                <option value="square" selected>Squares</option>
                 <option value="dots">Dots</option>
                 <option value="rounded">Rounded</option>
             </select>
@@ -306,6 +313,7 @@
         </div>
         
         <div id="qrcode" aria-live="polite" role="img" aria-label="Generated QR code"></div>
+        <div id="errorDisplay" class="error-message"></div>
         
         <div class="action-buttons">
             <div class="download-options">
@@ -331,6 +339,24 @@
     </div>
 
     <script>
+        // Check if all required libraries are loaded
+        function checkLibraries() {
+            const requiredLibs = {
+                'jQuery': typeof $ !== 'undefined',
+                'QRCodeStyling': typeof QRCodeStyling !== 'undefined',
+                'gsap': typeof gsap !== 'undefined',
+                'html2canvas': typeof html2canvas !== 'undefined',
+                'jsPDF': typeof jsPDF !== 'undefined',
+                'Spectrum': typeof $.fn.spectrum !== 'undefined'
+            };
+
+            const missingLibs = Object.entries(requiredLibs)
+                .filter(([_, loaded]) => !loaded)
+                .map(([name]) => name);
+
+            return missingLibs;
+        }
+
         const { jsPDF } = window.jspdf;
         let qrHistory = JSON.parse(localStorage.getItem("qrHistory")) || [];
         let logoImage = null;
@@ -338,34 +364,12 @@
         let qrColor = "#000000";
         let bgColor = "#ffffff";
         let qrCodeInstance = null;
-        let isQrLibraryLoaded = false;
 
-        // Wait for QRCodeStyling to load
-        function waitForQrLibrary() {
-            return new Promise((resolve, reject) => {
-                const maxAttempts = 20;
-                let attempts = 0;
-
-                const checkLibrary = () => {
-                    if (typeof QRCodeStyling !== "undefined") {
-                        isQrLibraryLoaded = true;
-                        resolve();
-                    } else if (attempts >= maxAttempts) {
-                        reject(new Error("QRCodeStyling library failed to load after maximum attempts."));
-                    } else {
-                        attempts++;
-                        setTimeout(checkLibrary, 500);
-                    }
-                };
-
-                checkLibrary();
-            });
-        }
-
-        // Initialize Spectrum.js color pickers and wait for QR library
-        document.addEventListener("DOMContentLoaded", async () => {
-            if (typeof $.fn.spectrum === "undefined") {
-                console.error("Spectrum.js failed to load. Please check if jQuery and Spectrum.js are properly included.");
+        // Initialize Spectrum.js color pickers
+        document.addEventListener("DOMContentLoaded", () => {
+            const missingLibs = checkLibraries();
+            if (missingLibs.length > 0) {
+                showError(`Required libraries not loaded: ${missingLibs.join(', ')}. Please reload the page.`);
                 return;
             }
 
@@ -426,18 +430,19 @@
             enforceHash("qrColorPicker");
             enforceHash("bgColorPicker");
 
-            // Wait for QRCodeStyling to load
-            try {
-                await waitForQrLibrary();
-                console.log("QRCodeStyling library loaded successfully.");
-            } catch (error) {
-                console.error(error.message);
-                document.getElementById("qrcode").innerHTML = `
-                    <p>Error: Failed to load QR code library. 
-                    <button onclick="location.reload()">Retry</button></p>
-                `;
-            }
+            // Initialize QR code with default values
+            setTimeout(autoGenerateQR, 100);
         });
+
+        function showError(message) {
+            const errorDisplay = document.getElementById("errorDisplay");
+            errorDisplay.textContent = message;
+            console.error(message);
+        }
+
+        function clearError() {
+            document.getElementById("errorDisplay").textContent = "";
+        }
 
         // Toggle between light and dark mode
         function toggleMode() {
@@ -453,60 +458,55 @@
         function autoGenerateQR() {
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
-                // Check if QRCodeStyling is available
-                if (!isQrLibraryLoaded) {
-                    console.error("QRCodeStyling library not loaded yet.");
-                    document.getElementById("qrcode").innerHTML = `
-                        <p>QR code library not loaded. 
-                        <button onclick="location.reload()">Retry</button></p>
-                    `;
-                    return;
-                }
-
-                const text = document.getElementById("text").value.trim();
-                const size = parseInt(document.getElementById("size").value) || 200;
-                const errorCorrection = document.getElementById("errorCorrection").value || "M";
-                const pattern = document.getElementById("qrPattern").value || "squares";
-
-                const qrContainer = document.getElementById("qrcode");
-                qrContainer.innerHTML = ""; // Clear previous QR code
-
-                // Update the container size dynamically
-                qrContainer.style.width = `${size}px`;
-                qrContainer.style.height = `${size}px`;
-
-                if (!text) {
-                    qrContainer.setAttribute("aria-label", "QR code will appear here");
-                    return;
-                }
-
-                const config = {
-                    width: size,
-                    height: size,
-                    data: text,
-                    dotsOptions: {
-                        color: qrColor,
-                        type: pattern
-                    },
-                    backgroundOptions: {
-                        color: bgColor
-                    },
-                    qrOptions: {
-                        errorCorrectionLevel: errorCorrection
-                    }
-                };
-
-                // Add logo if available
-                if (logoImage) {
-                    config.image = logoImage.src;
-                    config.imageOptions = {
-                        hideBackgroundDots: true,
-                        imageSize: 0.25
-                    };
-                }
-
                 try {
-                    // Always create a new instance to avoid update issues
+                    const text = document.getElementById("text").value.trim();
+                    const size = parseInt(document.getElementById("size").value) || 200;
+                    const errorCorrection = document.getElementById("errorCorrection").value || "M";
+                    const pattern = document.getElementById("qrPattern").value || "square";
+
+                    const qrContainer = document.getElementById("qrcode");
+                    qrContainer.innerHTML = ""; // Clear previous QR code
+                    clearError();
+
+                    // Update the container size dynamically
+                    qrContainer.style.width = `${size}px`;
+                    qrContainer.style.height = `${size}px`;
+
+                    if (!text) {
+                        qrContainer.setAttribute("aria-label", "QR code will appear here");
+                        return;
+                    }
+
+                    if (typeof QRCodeStyling === 'undefined') {
+                        throw new Error("QR code library not loaded. Please reload the page.");
+                    }
+
+                    const config = {
+                        width: size,
+                        height: size,
+                        data: text,
+                        dotsOptions: {
+                            color: qrColor,
+                            type: pattern
+                        },
+                        backgroundOptions: {
+                            color: bgColor
+                        },
+                        qrOptions: {
+                            errorCorrectionLevel: errorCorrection
+                        }
+                    };
+
+                    // Add logo if available
+                    if (logoImage) {
+                        config.image = logoImage.src;
+                        config.imageOptions = {
+                            hideBackgroundDots: true,
+                            imageSize: 0.25
+                        };
+                    }
+
+                    // Create new instance (fixes update issues)
                     qrCodeInstance = new QRCodeStyling(config);
                     qrCodeInstance.append(qrContainer);
 
@@ -514,8 +514,8 @@
                     saveToHistory(text);
                     gsap.from(qrContainer, { opacity: 0, scale: 0.8, duration: 0.5 });
                 } catch (error) {
-                    console.error("Error generating QR code:", error);
-                    qrContainer.innerHTML = "<p>Error generating QR code</p>";
+                    showError(error.message);
+                    console.error("QR generation error:", error);
                 }
             }, 300);
         }
@@ -529,6 +529,9 @@
                     logoImage = new Image();
                     logoImage.onload = () => autoGenerateQR();
                     logoImage.src = e.target.result;
+                };
+                reader.onerror = () => {
+                    showError("Error loading image file");
                 };
                 reader.readAsDataURL(file);
             } else {
@@ -560,12 +563,18 @@
             const format = document.getElementById("downloadFormat").value;
             const text = document.getElementById("text").value.trim();
             
-            if (!text || !qrCodeInstance) {
-                alert("Please generate a QR code first!");
+            if (!text) {
+                showError("Please enter text to generate a QR code first!");
+                return;
+            }
+            
+            if (!qrCodeInstance) {
+                showError("Please generate a QR code first!");
                 return;
             }
             
             showLoadingSpinner();
+            clearError();
             
             try {
                 if (format === "svg") {
@@ -575,7 +584,7 @@
                         data: text,
                         dotsOptions: {
                             color: qrColor,
-                            type: document.getElementById("qrPattern").value || "squares"
+                            type: document.getElementById("qrPattern").value || "square"
                         },
                         backgroundOptions: {
                             color: bgColor
@@ -596,18 +605,15 @@
                     const qr = new QRCodeStyling(config);
                     qr.download({ name: "qrcode", extension: "svg" });
                 } else {
-                    const canvas = await new Promise(resolve => {
+                    const canvas = await new Promise((resolve, reject) => {
                         const qrCanvas = document.querySelector("#qrcode canvas");
-                        if (qrCanvas) {
-                            html2canvas(qrCanvas).then(resolve);
-                        } else {
-                            resolve(null);
+                        if (!qrCanvas) {
+                            reject(new Error("QR code canvas not found"));
+                            return;
                         }
+                        
+                        html2canvas(qrCanvas).then(resolve).catch(reject);
                     });
-                    
-                    if (!canvas) {
-                        throw new Error("QR code canvas not found");
-                    }
                     
                     const link = document.createElement("a");
                     link.download = `qrcode.${format}`;
@@ -628,8 +634,8 @@
                 
                 saveToHistory(text);
             } catch (error) {
+                showError(`Failed to download QR code: ${error.message}`);
                 console.error("Download error:", error);
-                alert("Failed to download QR code");
             } finally {
                 hideLoadingSpinner();
             }
@@ -639,54 +645,58 @@
         async function shareQR() {
             const text = document.getElementById("text").value.trim();
             
-            if (!text || !qrCodeInstance) {
-                alert("Please generate a QR code first!");
+            if (!text) {
+                showError("Please enter text to generate a QR code first!");
+                return;
+            }
+            
+            if (!qrCodeInstance) {
+                showError("Please generate a QR code first!");
+                return;
+            }
+            
+            if (!navigator.share) {
+                showError("Web Share API not supported in your browser. Try downloading instead.");
                 return;
             }
             
             showLoadingSpinner();
+            clearError();
             
             try {
-                const canvas = await new Promise(resolve => {
+                const canvas = await new Promise((resolve, reject) => {
                     const qrCanvas = document.querySelector("#qrcode canvas");
-                    if (qrCanvas) {
-                        html2canvas(qrCanvas).then(resolve);
-                    } else {
-                        resolve(null);
-                    }
-                });
-                
-                if (!canvas) {
-                    throw new Error("QR code canvas not found");
-                }
-                
-                canvas.toBlob(async blob => {
-                    if (!blob) {
-                        throw new Error("Failed to create blob from canvas");
+                    if (!qrCanvas) {
+                        reject(new Error("QR code canvas not found"));
+                        return;
                     }
                     
-                    const file = new File([blob], "qrcode.png", { type: "image/png" });
-                    if (navigator.share) {
-                        try {
-                            await navigator.share({
-                                files: [file],
-                                title: "QR Code",
-                                text: text
-                            });
-                        } catch (shareError) {
-                            if (shareError.name !== 'AbortError') {
-                                console.error("Share error:", shareError);
-                            }
+                    html2canvas(qrCanvas).then(resolve).catch(reject);
+                });
+                
+                const blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error("Failed to create blob from canvas"));
+                            return;
                         }
-                    } else {
-                        alert("Web Share API not supported in your browser. Try downloading instead.");
-                    }
-                }, "image/png");
+                        resolve(blob);
+                    }, "image/png");
+                });
+                
+                const file = new File([blob], "qrcode.png", { type: "image/png" });
+                await navigator.share({
+                    files: [file],
+                    title: "QR Code",
+                    text: text
+                });
                 
                 saveToHistory(text);
             } catch (error) {
-                console.error("Share error:", error);
-                alert("Failed to share QR code");
+                if (error.name !== 'AbortError') {
+                    showError(`Failed to share QR code: ${error.message}`);
+                    console.error("Share error:", error);
+                }
             } finally {
                 hideLoadingSpinner();
             }
