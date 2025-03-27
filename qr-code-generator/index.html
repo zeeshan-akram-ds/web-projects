@@ -4,8 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator - Pro Edition</title>
+    <!-- Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Use a stable version of qrcode-styling -->
+    <script src="https://unpkg.com/qrcode-styling@1.6.0/lib/qrcode-styling.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
     <style>
-        /* All your existing CSS styles */
         * {
             margin: 0;
             padding: 0;
@@ -20,7 +28,237 @@
             padding: 20px;
             transition: background 0.3s, color 0.3s;
         }
-        /* ... (keep all your existing styles) ... */
+        body.light {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+        }
+        body.dark {
+            background: linear-gradient(135deg, #1e1e1e 0%, #3a3a3a 100%);
+            color: #fff;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        body.dark .container {
+            background: #2a2a2a;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"], select, input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        body.dark input[type="text"], body.dark select {
+            background: #3a3a3a;
+            border-color: #555;
+            color: #fff;
+        }
+        input[type="text"]:focus {
+            border-color: #6200ea;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .color-picker {
+            margin: 10px 0;
+        }
+        .color-picker label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .spectrum-container {
+            width: 100%;
+        }
+        button {
+            background: #6200ea;
+            color: #fff;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: #3700b3;
+        }
+        #qrcode {
+            margin: 20px auto;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px dashed #ddd;
+            min-height: 200px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+            position: relative;
+        }
+        .download-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .download-options select {
+            width: auto;
+        }
+        .download-btn {
+            background: #00c853;
+        }
+        .share-btn {
+            background: #0288d1;
+        }
+        .history {
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .clear-history-btn {
+            background: #ff4444;
+            padding: 8px;
+            font-size: 12px;
+        }
+        .clear-history-btn:hover {
+            background: #cc0000;
+            transform: scale(1.05);
+        }
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .history-item .timestamp {
+            font-size: 10px;
+            color: #888;
+        }
+        body.dark .history-item {
+            border-color: #555;
+        }
+        body.dark .history-item .timestamp {
+            color: #bbb;
+        }
+        .toggle-mode {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: #6200ea;
+            color: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        /* Loading Spinner */
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #6200ea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+            .options {
+                grid-template-columns: 1fr;
+            }
+            .action-buttons {
+                flex-direction: column;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .color-picker label {
+                font-size: 12px;
+            }
+            input[type="text"], select, input[type="file"] {
+                font-size: 14px;
+            }
+            button {
+                padding: 14px;
+                font-size: 14px;
+                min-height: 48px;
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .toggle-mode {
+                top: 10px;
+                right: 10px;
+                padding: 8px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            .color-picker label {
+                font-size: 10px;
+            }
+            input[type="text"], select, input[type="file"] {
+                font-size: 12px;
+            }
+            button {
+                font-size: 12px;
+                min-height: 44px;
+            }
+            .container {
+                padding: 15px;
+            }
+            .history-item {
+                font-size: 12px;
+            }
+            .history-item .timestamp {
+                font-size: 8px;
+            }
+        }
     </style>
 </head>
 <body class="light">
@@ -58,7 +296,7 @@
 
             <label for="qrPattern" class="sr-only">QR Pattern Style</label>
             <select id="qrPattern" aria-label="Select QR code pattern style" onchange="autoGenerateQR()">
-                <option value="square" selected>Squares</option>
+                <option value="squares" selected>Squares</option>
                 <option value="dots">Dots</option>
                 <option value="rounded">Rounded</option>
             </select>
@@ -68,7 +306,6 @@
         </div>
         
         <div id="qrcode" aria-live="polite" role="img" aria-label="Generated QR code"></div>
-        <div id="errorDisplay" class="error-message"></div>
         
         <div class="action-buttons">
             <div class="download-options">
@@ -93,136 +330,31 @@
         </div>
     </div>
 
-    <!-- Load jQuery first -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    <!-- Main application script with library loading guarantees -->
     <script>
-        // Configuration for required libraries
-        const LIBRARIES = {
-            qrcode: {
-                url: 'https://cdn.jsdelivr.net/npm/qrcode-styling@1.6.0/lib/qrcode-styling.min.js',
-                test: () => typeof QRCodeStyling !== 'undefined',
-                name: 'QRCodeStyling'
-            },
-            gsap: {
-                url: 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js',
-                test: () => typeof gsap !== 'undefined',
-                name: 'GSAP'
-            },
-            html2canvas: {
-                url: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-                test: () => typeof html2canvas !== 'undefined',
-                name: 'html2canvas'
-            },
-            jspdf: {
-                url: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-                test: () => typeof jsPDF !== 'undefined',
-                name: 'jsPDF'
-            },
-            spectrum: {
-                css: 'https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.css',
-                js: 'https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js',
-                test: () => typeof $.fn.spectrum !== 'undefined',
-                name: 'Spectrum'
-            }
-        };
-
-        // Global variables
+        const { jsPDF } = window.jspdf;
         let qrHistory = JSON.parse(localStorage.getItem("qrHistory")) || [];
         let logoImage = null;
         let debounceTimeout;
         let qrColor = "#000000";
         let bgColor = "#ffffff";
         let qrCodeInstance = null;
-        let librariesLoaded = false;
 
-        // Main initialization function
-        async function initializeApp() {
-            showLoading("Loading required libraries...");
-            
-            try {
-                // Load all required libraries
-                await loadLibraries();
-                
-                // Initialize Spectrum color pickers
-                initializeColorPickers();
-                
-                // Set up the rest of the application
-                setupApplication();
-                
-                // Hide loading state
-                hideLoading();
-                
-                // Initial QR code generation
-                autoGenerateQR();
-            } catch (error) {
-                showError(`Initialization failed: ${error.message}`);
-                console.error("Initialization error:", error);
+        // Wait for the library to load
+        function waitForLibrary(callback) {
+            if (typeof QRCodeStyling !== "undefined") {
+                callback();
+            } else {
+                setTimeout(() => waitForLibrary(callback), 100);
             }
         }
 
-        // Load all required libraries
-        async function loadLibraries() {
-            const loadPromises = [];
-            
-            // Load Spectrum CSS first
-            if (LIBRARIES.spectrum.css) {
-                loadPromises.push(loadCSS(LIBRARIES.spectrum.css));
+        // Initialize Spectrum.js color pickers
+        document.addEventListener("DOMContentLoaded", () => {
+            if (typeof $.fn.spectrum === "undefined") {
+                console.error("Spectrum.js failed to load. Please check if jQuery and Spectrum.js are properly included.");
+                return;
             }
-            
-            // Load other JS libraries
-            for (const [key, lib] of Object.entries(LIBRARIES)) {
-                if (key === 'spectrum') {
-                    loadPromises.push(loadScript(lib.js, lib.test, lib.name));
-                } else if (lib.url) {
-                    loadPromises.push(loadScript(lib.url, lib.test, lib.name));
-                }
-            }
-            
-            await Promise.all(loadPromises);
-            librariesLoaded = true;
-        }
 
-        // Load a single script with verification
-        function loadScript(url, testFn, libName) {
-            return new Promise((resolve, reject) => {
-                if (testFn()) {
-                    resolve();
-                    return;
-                }
-                
-                const script = document.createElement('script');
-                script.src = url;
-                script.onload = () => {
-                    // Verify the library actually loaded
-                    setTimeout(() => {
-                        if (testFn()) {
-                            resolve();
-                        } else {
-                            reject(new Error(`${libName} failed to load properly`));
-                        }
-                    }, 100);
-                };
-                script.onerror = () => reject(new Error(`Failed to load ${libName} library`));
-                document.head.appendChild(script);
-            });
-        }
-
-        // Load CSS
-        function loadCSS(url) {
-            return new Promise((resolve, reject) => {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = url;
-                link.onload = resolve;
-                link.onerror = () => reject(new Error(`Failed to load CSS: ${url}`));
-                document.head.appendChild(link);
-            });
-        }
-
-        // Initialize Spectrum color pickers
-        function initializeColorPickers() {
             $("#qrColorPicker").spectrum({
                 color: qrColor,
                 showInput: true,
@@ -260,11 +392,8 @@
                     autoGenerateQR();
                 }
             });
-        }
 
-        // Set up the application after libraries are loaded
-        function setupApplication() {
-            // Ensure the # is always present in color inputs
+            // Ensure the # is always present in the input
             const enforceHash = (inputId) => {
                 const input = document.getElementById(inputId);
                 input.addEventListener("input", () => {
@@ -282,42 +411,7 @@
 
             enforceHash("qrColorPicker");
             enforceHash("bgColorPicker");
-
-            // Initialize history
-            updateHistoryUI();
-            gsap.from(".container", { opacity: 0, y: 20, duration: 0.5 });
-        }
-
-        // Show loading state
-        function showLoading(message) {
-            document.getElementById("loadingSpinner").style.display = "block";
-            document.querySelectorAll("button, select, input").forEach(el => {
-                el.disabled = true;
-            });
-            if (message) {
-                showError(message);
-            }
-        }
-
-        // Hide loading state
-        function hideLoading() {
-            document.getElementById("loadingSpinner").style.display = "none";
-            document.querySelectorAll("button, select, input").forEach(el => {
-                el.disabled = false;
-            });
-        }
-
-        // Show error message
-        function showError(message) {
-            const errorDisplay = document.getElementById("errorDisplay");
-            errorDisplay.textContent = message;
-            console.error(message);
-        }
-
-        // Clear error message
-        function clearError() {
-            document.getElementById("errorDisplay").textContent = "";
-        }
+        });
 
         // Toggle between light and dark mode
         function toggleMode() {
@@ -331,24 +425,18 @@
 
         // Generate QR code with debounce
         function autoGenerateQR() {
-            if (!librariesLoaded) {
-                showError("Libraries are still loading. Please wait...");
-                return;
-            }
-
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
-                try {
+                waitForLibrary(() => {
                     const text = document.getElementById("text").value.trim();
                     const size = parseInt(document.getElementById("size").value) || 200;
                     const errorCorrection = document.getElementById("errorCorrection").value || "M";
-                    const pattern = document.getElementById("qrPattern").value || "square";
+                    const pattern = document.getElementById("qrPattern").value || "squares";
 
                     const qrContainer = document.getElementById("qrcode");
-                    qrContainer.innerHTML = "";
-                    clearError();
+                    qrContainer.innerHTML = ""; // Clear previous QR code
 
-                    // Update container size
+                    // Update the container size dynamically
                     qrContainer.style.width = `${size}px`;
                     qrContainer.style.height = `${size}px`;
 
@@ -382,17 +470,18 @@
                         };
                     }
 
-                    // Create new QR code instance
-                    qrCodeInstance = new QRCodeStyling(config);
-                    qrCodeInstance.append(qrContainer);
+                    try {
+                        qrCodeInstance = new QRCodeStyling(config);
+                        qrCodeInstance.append(qrContainer);
 
-                    qrContainer.setAttribute("aria-label", `QR code for ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
-                    saveToHistory(text);
-                    gsap.from(qrContainer, { opacity: 0, scale: 0.8, duration: 0.5 });
-                } catch (error) {
-                    showError(`Error generating QR code: ${error.message}`);
-                    console.error("QR generation error:", error);
-                }
+                        qrContainer.setAttribute("aria-label", `QR code for ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
+                        saveToHistory(text);
+                        gsap.from(qrContainer, { opacity: 0, scale: 0.8, duration: 0.5 });
+                    } catch (error) {
+                        console.error("Error generating QR code:", error);
+                        qrContainer.innerHTML = "<p>Error generating QR code. Please try again.</p>";
+                    }
+                });
             }, 300);
         }
 
@@ -406,9 +495,6 @@
                     logoImage.onload = () => autoGenerateQR();
                     logoImage.src = e.target.result;
                 };
-                reader.onerror = () => {
-                    showError("Error loading image file");
-                };
                 reader.readAsDataURL(file);
             } else {
                 logoImage = null;
@@ -416,23 +502,35 @@
             }
         }
 
+        // Show loading spinner
+        function showLoadingSpinner() {
+            document.getElementById("loadingSpinner").style.display = "block";
+            document.querySelectorAll(".action-buttons button").forEach(btn => {
+                btn.disabled = true;
+                btn.setAttribute("aria-busy", "true");
+            });
+        }
+
+        // Hide loading spinner
+        function hideLoadingSpinner() {
+            document.getElementById("loadingSpinner").style.display = "none";
+            document.querySelectorAll(".action-buttons button").forEach(btn => {
+                btn.disabled = false;
+                btn.setAttribute("aria-busy", "false");
+            });
+        }
+
         // Download QR code
         async function downloadQR() {
             const format = document.getElementById("downloadFormat").value;
             const text = document.getElementById("text").value.trim();
             
-            if (!text) {
-                showError("Please enter text to generate a QR code first!");
-                return;
-            }
-            
-            if (!qrCodeInstance) {
-                showError("Please generate a QR code first!");
+            if (!text || !qrCodeInstance) {
+                alert("Please generate a QR code first!");
                 return;
             }
             
             showLoadingSpinner();
-            clearError();
             
             try {
                 if (format === "svg") {
@@ -442,7 +540,7 @@
                         data: text,
                         dotsOptions: {
                             color: qrColor,
-                            type: document.getElementById("qrPattern").value || "square"
+                            type: document.getElementById("qrPattern").value || "squares"
                         },
                         backgroundOptions: {
                             color: bgColor
@@ -463,15 +561,18 @@
                     const qr = new QRCodeStyling(config);
                     qr.download({ name: "qrcode", extension: "svg" });
                 } else {
-                    const canvas = await new Promise((resolve, reject) => {
+                    const canvas = await new Promise(resolve => {
                         const qrCanvas = document.querySelector("#qrcode canvas");
-                        if (!qrCanvas) {
-                            reject(new Error("QR code canvas not found"));
-                            return;
+                        if (qrCanvas) {
+                            html2canvas(qrCanvas).then(resolve);
+                        } else {
+                            resolve(null);
                         }
-                        
-                        html2canvas(qrCanvas).then(resolve).catch(reject);
                     });
+                    
+                    if (!canvas) {
+                        throw new Error("QR code canvas not found");
+                    }
                     
                     const link = document.createElement("a");
                     link.download = `qrcode.${format}`;
@@ -492,8 +593,8 @@
                 
                 saveToHistory(text);
             } catch (error) {
-                showError(`Failed to download QR code: ${error.message}`);
                 console.error("Download error:", error);
+                alert("Failed to download QR code");
             } finally {
                 hideLoadingSpinner();
             }
@@ -503,58 +604,54 @@
         async function shareQR() {
             const text = document.getElementById("text").value.trim();
             
-            if (!text) {
-                showError("Please enter text to generate a QR code first!");
-                return;
-            }
-            
-            if (!qrCodeInstance) {
-                showError("Please generate a QR code first!");
-                return;
-            }
-            
-            if (!navigator.share) {
-                showError("Web Share API not supported in your browser. Try downloading instead.");
+            if (!text || !qrCodeInstance) {
+                alert("Please generate a QR code first!");
                 return;
             }
             
             showLoadingSpinner();
-            clearError();
             
             try {
-                const canvas = await new Promise((resolve, reject) => {
+                const canvas = await new Promise(resolve => {
                     const qrCanvas = document.querySelector("#qrcode canvas");
-                    if (!qrCanvas) {
-                        reject(new Error("QR code canvas not found"));
-                        return;
+                    if (qrCanvas) {
+                        html2canvas(qrCanvas).then(resolve);
+                    } else {
+                        resolve(null);
+                    }
+                });
+                
+                if (!canvas) {
+                    throw new Error("QR code canvas not found");
+                }
+                
+                canvas.toBlob(async blob => {
+                    if (!blob) {
+                        throw new Error("Failed to create blob from canvas");
                     }
                     
-                    html2canvas(qrCanvas).then(resolve).catch(reject);
-                });
-                
-                const blob = await new Promise((resolve, reject) => {
-                    canvas.toBlob((blob) => {
-                        if (!blob) {
-                            reject(new Error("Failed to create blob from canvas"));
-                            return;
+                    const file = new File([blob], "qrcode.png", { type: "image/png" });
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: "QR Code",
+                                text: text
+                            });
+                        } catch (shareError) {
+                            if (shareError.name !== 'AbortError') {
+                                console.error("Share error:", shareError);
+                            }
                         }
-                        resolve(blob);
-                    }, "image/png");
-                });
-                
-                const file = new File([blob], "qrcode.png", { type: "image/png" });
-                await navigator.share({
-                    files: [file],
-                    title: "QR Code",
-                    text: text
-                });
+                    } else {
+                        alert("Web Share API not supported in your browser. Try downloading instead.");
+                    }
+                }, "image/png");
                 
                 saveToHistory(text);
             } catch (error) {
-                if (error.name !== 'AbortError') {
-                    showError(`Failed to share QR code: ${error.message}`);
-                    console.error("Share error:", error);
-                }
+                console.error("Share error:", error);
+                alert("Failed to share QR code");
             } finally {
                 hideLoadingSpinner();
             }
@@ -570,6 +667,7 @@
             
             if (existingIndex >= 0) {
                 qrHistory[existingIndex].timestamp = timestamp;
+                // Move to top
                 qrHistory.unshift(qrHistory.splice(existingIndex, 1)[0]);
             } else {
                 qrHistory.unshift({ text, timestamp });
@@ -594,6 +692,7 @@
         // Update history UI
         function updateHistoryUI() {
             const historyDiv = document.getElementById("history");
+            // Keep the header
             historyDiv.innerHTML = `
                 <div class="history-header">
                     <h3>Recent QR Codes</h3>
@@ -636,6 +735,10 @@
             });
         }
 
+        // Initial load
+        updateHistoryUI();
+        gsap.from(".container", { opacity: 0, y: 20, duration: 0.5 });
+
         // Add visually hidden class for screen readers
         const style = document.createElement("style");
         style.textContent = `
@@ -652,9 +755,6 @@
             }
         `;
         document.head.appendChild(style);
-
-        // Start the application
-        initializeApp();
     </script>
 </body>
 </html>
