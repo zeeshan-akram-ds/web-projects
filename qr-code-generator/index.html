@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator - Pro Edition</title>
     <!-- Libraries -->
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script> <!-- Added jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Spectrum.js for modern color pickers -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
     <style>
@@ -151,12 +150,56 @@
             border-radius: 50%;
             cursor: pointer;
         }
-        @media (max-width: 480px) {
+        /* Improved Responsiveness */
+        @media (max-width: 768px) {
             .options {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr; /* Single column on tablets and smaller */
             }
             .action-buttons {
                 flex-direction: column;
+            }
+            h1 {
+                font-size: 24px; /* Smaller heading on tablets */
+            }
+            .color-picker label {
+                font-size: 12px; /* Smaller labels */
+            }
+            input[type="text"], select, input[type="file"] {
+                font-size: 14px; /* Smaller input text */
+            }
+            button {
+                padding: 14px; /* Larger touch target */
+                font-size: 14px;
+                min-height: 48px; /* Better touch target */
+            }
+            .container {
+                padding: 20px; /* Reduced padding on smaller screens */
+            }
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 10px; /* Reduced padding on mobile */
+            }
+            .toggle-mode {
+                top: 10px;
+                right: 10px;
+                padding: 8px;
+            }
+            h1 {
+                font-size: 20px; /* Even smaller heading on mobile */
+            }
+            .color-picker label {
+                font-size: 10px;
+            }
+            input[type="text"], select, input[type="file"] {
+                font-size: 12px;
+            }
+            button {
+                font-size: 12px;
+                min-height: 44px;
+            }
+            .container {
+                padding: 15px;
             }
         }
     </style>
@@ -216,6 +259,11 @@
 
         // Initialize Spectrum.js color pickers
         document.addEventListener("DOMContentLoaded", () => {
+            if (typeof $.fn.spectrum === "undefined") {
+                console.error("Spectrum.js failed to load. Please check if jQuery and Spectrum.js are properly included.");
+                return;
+            }
+
             $("#qrColorPicker").spectrum({
                 color: qrColor,
                 showInput: true,
@@ -306,7 +354,6 @@
                     return;
                 }
 
-                // Ensure colors are valid hex values
                 const validQrColor = qrColor.startsWith("#") && qrColor.length === 7 ? qrColor : "#000000";
                 const validBgColor = bgColor.startsWith("#") && bgColor.length === 7 ? bgColor : "#ffffff";
 
@@ -326,7 +373,7 @@
                     if (logoImage) addLogoToQR();
                     gsap.from("#qrcode", { opacity: 0, scale: 0.8, duration: 0.5, ease: "back.out(1.7)" });
                 }, 100);
-            }, 100); // Reduced debounce time for faster updates
+            }, 100);
         }
 
         // Handle logo upload and preview
