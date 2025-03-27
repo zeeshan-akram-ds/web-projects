@@ -110,6 +110,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            border: 1px dashed #ddd;
+            width: 200px;
+            height: 200px;
         }
         .action-buttons {
             display: flex;
@@ -180,6 +183,7 @@
             color: #fff;
             border-radius: 50%;
             cursor: pointer;
+            border: none;
         }
         /* Loading Spinner */
         .loading-spinner {
@@ -259,57 +263,70 @@
     </style>
 </head>
 <body class="light">
-    <button class="toggle-mode" onclick="toggleMode()">🌙</button>
+    <button class="toggle-mode" aria-label="Toggle dark mode" onclick="toggleMode()">🌙</button>
     <div class="container">
         <h1>QR Code Generator Pro</h1>
         <div class="input-group">
-            <input type="text" id="text" placeholder="Enter text or URL" oninput="autoGenerateQR()" />
+            <label for="text" class="sr-only">Enter text or URL</label>
+            <input type="text" id="text" placeholder="Enter text or URL" aria-label="Enter text or URL for QR code" oninput="autoGenerateQR()" />
         </div>
         <div class="options">
-            <select id="size">
+            <label for="size" class="sr-only">QR Code Size</label>
+            <select id="size" aria-label="Select QR code size">
                 <option value="100">100x100</option>
                 <option value="200" selected>200x200</option>
                 <option value="300">300x300</option>
             </select>
-            <select id="errorCorrection">
+
+            <label for="errorCorrection" class="sr-only">Error Correction Level</label>
+            <select id="errorCorrection" aria-label="Select error correction level">
                 <option value="L">Low</option>
                 <option value="M" selected>Medium</option>
                 <option value="Q">Quartile</option>
                 <option value="H">High</option>
             </select>
+
             <div class="color-picker">
-                <label>QR Code Color:</label>
-                <input type="text" id="qrColorPicker" value="#000000" />
+                <label for="qrColorPicker">QR Code Color:</label>
+                <input type="text" id="qrColorPicker" value="#000000" aria-label="Select QR code color" />
             </div>
             <div class="color-picker">
-                <label>Background Color:</label>
-                <input type="text" id="bgColorPicker" value="#ffffff" />
+                <label for="bgColorPicker">Background Color:</label>
+                <input type="text" id="bgColorPicker" value="#ffffff" aria-label="Select background color" />
             </div>
-            <select id="qrPattern">
+
+            <label for="qrPattern" class="sr-only">QR Pattern Style</label>
+            <select id="qrPattern" aria-label="Select QR code pattern style">
                 <option value="squares" selected>Squares</option>
                 <option value="dots">Dots</option>
                 <option value="rounded">Rounded</option>
             </select>
-            <input type="file" id="logo" accept="image/*" onchange="previewLogo()" />
+
+            <label for="logo" class="sr-only">Upload Logo</label>
+            <input type="file" id="logo" accept="image/*" aria-label="Upload logo image" onchange="previewLogo()" />
         </div>
-        <div id="qrcode"></div>
+        
+        <div id="qrcode" aria-live="polite" role="img" aria-label="Generated QR code"></div>
+        
         <div class="action-buttons">
             <div class="download-options">
-                <select id="downloadFormat">
+                <label for="downloadFormat" class="sr-only">Download Format</label>
+                <select id="downloadFormat" aria-label="Select download format">
                     <option value="png">PNG</option>
                     <option value="jpg">JPG</option>
                     <option value="pdf">PDF</option>
                     <option value="svg">SVG</option>
                 </select>
-                <button class="download-btn" onclick="downloadQR()">Download QR Code</button>
+                <button class="download-btn" aria-label="Download QR code" onclick="downloadQR()">Download QR Code</button>
             </div>
-            <button class="share-btn" onclick="shareQR()">Share QR Code</button>
-            <div class="loading-spinner" id="loadingSpinner"></div>
+            <button class="share-btn" aria-label="Share QR code" onclick="shareQR()">Share QR Code</button>
+            <div class="loading-spinner" id="loadingSpinner" aria-hidden="true"></div>
         </div>
+        
         <div class="history" id="history">
             <div class="history-header">
                 <h3>Recent QR Codes</h3>
-                <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
+                <button class="clear-history-btn" aria-label="Clear history" onclick="clearHistory()">Clear History</button>
             </div>
         </div>
     </div>
@@ -363,28 +380,34 @@
                 }
             });
 
-            // Initialize QR code on load
-            autoGenerateQR();
+            // Initialize QR code on load with default values
+            setTimeout(autoGenerateQR, 100);
         });
 
         // Toggle between light and dark mode
         function toggleMode() {
             document.body.classList.toggle("light");
             document.body.classList.toggle("dark");
-            document.querySelector(".toggle-mode").textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+            const modeButton = document.querySelector(".toggle-mode");
+            modeButton.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+            modeButton.setAttribute("aria-label", 
+                document.body.classList.contains("dark") ? "Switch to light mode" : "Switch to dark mode");
         }
 
         // Generate QR code with debounce
         function autoGenerateQR() {
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
-                const text = document.getElementById("text").value;
-                const size = parseInt(document.getElementById("size").value);
-                const errorCorrection = document.getElementById("errorCorrection").value;
-                const pattern = document.getElementById("qrPattern").value;
+                const text = document.getElementById("text").value.trim();
+                const size = parseInt(document.getElementById("size").value) || 200;
+                const errorCorrection = document.getElementById("errorCorrection").value || "M";
+                const pattern = document.getElementById("qrPattern").value || "squares";
+
+                const qrContainer = document.getElementById("qrcode");
+                qrContainer.innerHTML = ""; // Clear previous QR code
 
                 if (!text) {
-                    document.getElementById("qrcode").innerHTML = "";
+                    qrContainer.setAttribute("aria-label", "QR code will appear here");
                     return;
                 }
 
@@ -394,8 +417,7 @@
                     data: text,
                     dotsOptions: {
                         color: qrColor,
-                        type: pattern === "dots" ? "dots" : 
-                              pattern === "rounded" ? "rounded" : "square"
+                        type: pattern
                     },
                     backgroundOptions: {
                         color: bgColor
@@ -417,16 +439,18 @@
                 // Create or update QR code
                 if (!qrCodeInstance) {
                     qrCodeInstance = new QRCodeStyling(config);
-                    qrCodeInstance.append(document.getElementById("qrcode"));
+                    qrCodeInstance.append(qrContainer);
                 } else {
                     qrCodeInstance.update(config);
                 }
+
+                qrContainer.setAttribute("aria-label", `QR code for ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
 
                 // Save to history
                 saveToHistory(text);
 
                 // Animation
-                gsap.from("#qrcode", { opacity: 0, scale: 0.8, duration: 0.5 });
+                gsap.from(qrContainer, { opacity: 0, scale: 0.8, duration: 0.5 });
             }, 300);
         }
 
@@ -437,8 +461,8 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     logoImage = new Image();
+                    logoImage.onload = () => autoGenerateQR();
                     logoImage.src = e.target.result;
-                    autoGenerateQR();
                 };
                 reader.readAsDataURL(file);
             } else {
@@ -450,40 +474,48 @@
         // Show loading spinner
         function showLoadingSpinner() {
             document.getElementById("loadingSpinner").style.display = "block";
-            document.querySelectorAll(".action-buttons button").forEach(btn => btn.disabled = true);
+            document.querySelectorAll(".action-buttons button").forEach(btn => {
+                btn.disabled = true;
+                btn.setAttribute("aria-busy", "true");
+            });
         }
 
         // Hide loading spinner
         function hideLoadingSpinner() {
             document.getElementById("loadingSpinner").style.display = "none";
-            document.querySelectorAll(".action-buttons button").forEach(btn => btn.disabled = false);
+            document.querySelectorAll(".action-buttons button").forEach(btn => {
+                btn.disabled = false;
+                btn.setAttribute("aria-busy", "false");
+            });
         }
 
         // Download QR code
         async function downloadQR() {
             const format = document.getElementById("downloadFormat").value;
-            const text = document.getElementById("text").value;
+            const text = document.getElementById("text").value.trim();
             
-            if (!text) return alert("Please generate a QR code first!");
+            if (!text || !qrCodeInstance) {
+                alert("Please generate a QR code first!");
+                return;
+            }
             
             showLoadingSpinner();
             
             try {
                 if (format === "svg") {
                     const config = {
-                        width: parseInt(document.getElementById("size").value),
-                        height: parseInt(document.getElementById("size").value),
+                        width: parseInt(document.getElementById("size").value) || 200,
+                        height: parseInt(document.getElementById("size").value) || 200,
                         data: text,
                         dotsOptions: {
                             color: qrColor,
-                            type: document.getElementById("qrPattern").value === "dots" ? "dots" : 
-                                  document.getElementById("qrPattern").value === "rounded" ? "rounded" : "square"
+                            type: document.getElementById("qrPattern").value || "squares"
                         },
                         backgroundOptions: {
                             color: bgColor
                         },
                         qrOptions: {
-                            errorCorrectionLevel: document.getElementById("errorCorrection").value
+                            errorCorrectionLevel: document.getElementById("errorCorrection").value || "M"
                         }
                     };
                     
@@ -499,19 +531,17 @@
                     qr.download({ name: "qrcode", extension: "svg" });
                 } else {
                     const canvas = await new Promise(resolve => {
-                        qrCodeInstance._canvas.toBlob(blob => {
-                            const img = new Image();
-                            img.onload = () => {
-                                const canvas = document.createElement("canvas");
-                                canvas.width = img.width;
-                                canvas.height = img.height;
-                                const ctx = canvas.getContext("2d");
-                                ctx.drawImage(img, 0, 0);
-                                resolve(canvas);
-                            };
-                            img.src = URL.createObjectURL(blob);
-                        });
+                        const qrCanvas = document.querySelector("#qrcode canvas");
+                        if (qrCanvas) {
+                            html2canvas(qrCanvas).then(resolve);
+                        } else {
+                            resolve(null);
+                        }
                     });
+                    
+                    if (!canvas) {
+                        throw new Error("QR code canvas not found");
+                    }
                     
                     const link = document.createElement("a");
                     link.download = `qrcode.${format}`;
@@ -525,7 +555,7 @@
                         pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, canvas.width, canvas.height);
                         pdf.save("qrcode.pdf");
                     } else {
-                        link.href = canvas.toDataURL(`image/${format}`);
+                        link.href = canvas.toDataURL(`image/${format === "jpg" ? "jpeg" : format}`);
                         link.click();
                     }
                 }
@@ -541,43 +571,56 @@
 
         // Share QR code
         async function shareQR() {
-            const text = document.getElementById("text").value;
-            if (!text) return alert("Please generate a QR code first!");
+            const text = document.getElementById("text").value.trim();
+            
+            if (!text || !qrCodeInstance) {
+                alert("Please generate a QR code first!");
+                return;
+            }
             
             showLoadingSpinner();
             
             try {
                 const canvas = await new Promise(resolve => {
-                    qrCodeInstance._canvas.toBlob(blob => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement("canvas");
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext("2d");
-                            ctx.drawImage(img, 0, 0);
-                            resolve(canvas);
-                        };
-                        img.src = URL.createObjectURL(blob);
-                    });
-                });
-                
-                canvas.toBlob(async blob => {
-                    const file = new File([blob], "qrcode.png", { type: "image/png" });
-                    if (navigator.share) {
-                        await navigator.share({
-                            files: [file],
-                            title: "QR Code",
-                            text: text
-                        });
+                    const qrCanvas = document.querySelector("#qrcode canvas");
+                    if (qrCanvas) {
+                        html2canvas(qrCanvas).then(resolve);
                     } else {
-                        alert("Web Share API not supported in your browser");
+                        resolve(null);
                     }
                 });
+                
+                if (!canvas) {
+                    throw new Error("QR code canvas not found");
+                }
+                
+                canvas.toBlob(async blob => {
+                    if (!blob) {
+                        throw new Error("Failed to create blob from canvas");
+                    }
+                    
+                    const file = new File([blob], "qrcode.png", { type: "image/png" });
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: "QR Code",
+                                text: text
+                            });
+                        } catch (shareError) {
+                            if (shareError.name !== 'AbortError') {
+                                console.error("Share error:", shareError);
+                            }
+                        }
+                    } else {
+                        alert("Web Share API not supported in your browser. Try downloading instead.");
+                    }
+                }, "image/png");
                 
                 saveToHistory(text);
             } catch (error) {
                 console.error("Share error:", error);
+                alert("Failed to share QR code");
             } finally {
                 hideLoadingSpinner();
             }
@@ -593,6 +636,8 @@
             
             if (existingIndex >= 0) {
                 qrHistory[existingIndex].timestamp = timestamp;
+                // Move to top
+                qrHistory.unshift(qrHistory.splice(existingIndex, 1)[0]);
             } else {
                 qrHistory.unshift({ text, timestamp });
                 if (qrHistory.length > 5) qrHistory.pop();
@@ -604,24 +649,42 @@
 
         // Clear history
         function clearHistory() {
-            qrHistory = [];
-            localStorage.setItem("qrHistory", JSON.stringify(qrHistory));
-            updateHistoryUI();
+            if (qrHistory.length === 0) return;
+            
+            if (confirm("Are you sure you want to clear your QR code history?")) {
+                qrHistory = [];
+                localStorage.setItem("qrHistory", JSON.stringify(qrHistory));
+                updateHistoryUI();
+            }
         }
 
         // Update history UI
         function updateHistoryUI() {
             const historyDiv = document.getElementById("history");
+            // Keep the header
             historyDiv.innerHTML = `
                 <div class="history-header">
                     <h3>Recent QR Codes</h3>
-                    <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
+                    <button class="clear-history-btn" aria-label="Clear history" onclick="clearHistory()" ${qrHistory.length === 0 ? 'disabled' : ''}>
+                        Clear History
+                    </button>
                 </div>
             `;
+            
+            if (qrHistory.length === 0) {
+                const emptyMsg = document.createElement("div");
+                emptyMsg.className = "history-item";
+                emptyMsg.textContent = "No recent QR codes";
+                historyDiv.appendChild(emptyMsg);
+                return;
+            }
             
             qrHistory.forEach((item, index) => {
                 const div = document.createElement("div");
                 div.className = "history-item";
+                div.tabIndex = 0;
+                div.setAttribute("role", "button");
+                div.setAttribute("aria-label", `Load QR code for ${item.text.substring(0, 30)}${item.text.length > 30 ? '...' : ''}, created ${item.timestamp}`);
                 div.innerHTML = `
                     <span>${item.text.length > 30 ? item.text.substring(0, 30) + "..." : item.text}</span>
                     <span class="timestamp">${item.timestamp}</span>
@@ -629,6 +692,12 @@
                 div.onclick = () => {
                     document.getElementById("text").value = item.text;
                     autoGenerateQR();
+                };
+                div.onkeydown = (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        document.getElementById("text").value = item.text;
+                        autoGenerateQR();
+                    }
                 };
                 historyDiv.appendChild(div);
                 gsap.from(div, { opacity: 0, y: 20, duration: 0.3, delay: index * 0.1 });
@@ -638,6 +707,23 @@
         // Initial load
         updateHistoryUI();
         gsap.from(".container", { opacity: 0, y: 20, duration: 0.5 });
+
+        // Add visually hidden class for screen readers
+        const style = document.createElement("style");
+        style.textContent = `
+            .sr-only {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+                border-width: 0;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
