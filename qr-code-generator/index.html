@@ -106,13 +106,12 @@
         #qrcode {
             margin: 20px auto;
             text-align: center;
-            min-height: 200px;
             display: flex;
             justify-content: center;
             align-items: center;
             border: 1px dashed #ddd;
-            width: 200px;
-            height: 200px;
+            /* Remove fixed dimensions to allow dynamic sizing */
+            min-height: 200px;
         }
         .action-buttons {
             display: flex;
@@ -272,14 +271,14 @@
         </div>
         <div class="options">
             <label for="size" class="sr-only">QR Code Size</label>
-            <select id="size" aria-label="Select QR code size">
+            <select id="size" aria-label="Select QR code size" onchange="autoGenerateQR()">
                 <option value="100">100x100</option>
                 <option value="200" selected>200x200</option>
                 <option value="300">300x300</option>
             </select>
 
             <label for="errorCorrection" class="sr-only">Error Correction Level</label>
-            <select id="errorCorrection" aria-label="Select error correction level">
+            <select id="errorCorrection" aria-label="Select error correction level" onchange="autoGenerateQR()">
                 <option value="L">Low</option>
                 <option value="M" selected>Medium</option>
                 <option value="Q">Quartile</option>
@@ -296,7 +295,7 @@
             </div>
 
             <label for="qrPattern" class="sr-only">QR Pattern Style</label>
-            <select id="qrPattern" aria-label="Select QR code pattern style">
+            <select id="qrPattern" aria-label="Select QR code pattern style" onchange="autoGenerateQR()">
                 <option value="squares" selected>Squares</option>
                 <option value="dots">Dots</option>
                 <option value="rounded">Rounded</option>
@@ -342,6 +341,11 @@
 
         // Initialize Spectrum.js color pickers
         document.addEventListener("DOMContentLoaded", () => {
+            if (typeof $.fn.spectrum === "undefined") {
+                console.error("Spectrum.js failed to load. Please check if jQuery and Spectrum.js are properly included.");
+                return;
+            }
+
             $("#qrColorPicker").spectrum({
                 color: qrColor,
                 showInput: true,
@@ -380,8 +384,24 @@
                 }
             });
 
-            // Initialize QR code on load with default values
-            setTimeout(autoGenerateQR, 100);
+            // Ensure the # is always present in the input
+            const enforceHash = (inputId) => {
+                const input = document.getElementById(inputId);
+                input.addEventListener("input", () => {
+                    let value = input.value;
+                    if (!value.startsWith("#")) {
+                        value = "#" + value.replace(/^#+/, "");
+                        input.value = value;
+                    }
+                    if (value.length > 7) {
+                        value = value.substring(0, 7);
+                        input.value = value;
+                    }
+                });
+            };
+
+            enforceHash("qrColorPicker");
+            enforceHash("bgColorPicker");
         });
 
         // Toggle between light and dark mode
@@ -398,6 +418,13 @@
         function autoGenerateQR() {
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
+                // Check if QRCodeStyling is available
+                if (typeof QRCodeStyling === "undefined") {
+                    console.error("QRCodeStyling library not loaded.");
+                    document.getElementById("qrcode").innerHTML = "<p>Error: QR code library not loaded.</p>";
+                    return;
+                }
+
                 const text = document.getElementById("text").value.trim();
                 const size = parseInt(document.getElementById("size").value) || 200;
                 const errorCorrection = document.getElementById("errorCorrection").value || "M";
@@ -405,6 +432,10 @@
 
                 const qrContainer = document.getElementById("qrcode");
                 qrContainer.innerHTML = ""; // Clear previous QR code
+
+                // Update the container size dynamically
+                qrContainer.style.width = `${size}px`;
+                qrContainer.style.height = `${size}px`;
 
                 if (!text) {
                     qrContainer.setAttribute("aria-label", "QR code will appear here");
@@ -436,21 +467,18 @@
                     };
                 }
 
-                // Create or update QR code
-                if (!qrCodeInstance) {
+                try {
+                    // Always create a new instance to avoid update issues
                     qrCodeInstance = new QRCodeStyling(config);
                     qrCodeInstance.append(qrContainer);
-                } else {
-                    qrCodeInstance.update(config);
+
+                    qrContainer.setAttribute("aria-label", `QR code for ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
+                    saveToHistory(text);
+                    gsap.from(qrContainer, { opacity: 0, scale: 0.8, duration: 0.5 });
+                } catch (error) {
+                    console.error("Error generating QR code:", error);
+                    qrContainer.innerHTML = "<p>Error generating QR code</p>";
                 }
-
-                qrContainer.setAttribute("aria-label", `QR code for ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
-
-                // Save to history
-                saveToHistory(text);
-
-                // Animation
-                gsap.from(qrContainer, { opacity: 0, scale: 0.8, duration: 0.5 });
             }, 300);
         }
 
