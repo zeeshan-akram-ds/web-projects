@@ -6,7 +6,6 @@
     <title>QR Code Generator - Pro Edition</title>
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Replace qrcode.js with qrcode-styling for custom patterns -->
     <script src="https://unpkg.com/qrcode-styling@1.6.0-rc.1/lib/qrcode-styling.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -107,6 +106,10 @@
         #qrcode {
             margin: 20px auto;
             text-align: center;
+            min-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .action-buttons {
             display: flex;
@@ -318,14 +321,10 @@
         let debounceTimeout;
         let qrColor = "#000000";
         let bgColor = "#ffffff";
+        let qrCodeInstance = null;
 
         // Initialize Spectrum.js color pickers
         document.addEventListener("DOMContentLoaded", () => {
-            if (typeof $.fn.spectrum === "undefined") {
-                console.error("Spectrum.js failed to load. Please check if jQuery and Spectrum.js are properly included.");
-                return;
-            }
-
             $("#qrColorPicker").spectrum({
                 color: qrColor,
                 showInput: true,
@@ -341,12 +340,6 @@
                 allowEmpty: false,
                 change: (color) => {
                     qrColor = color.toHexString();
-                    console.log("QR Color Changed:", qrColor);
-                    autoGenerateQR();
-                },
-                move: (color) => {
-                    qrColor = color.toHexString();
-                    console.log("QR Color Moving:", qrColor);
                     autoGenerateQR();
                 }
             });
@@ -366,37 +359,12 @@
                 allowEmpty: false,
                 change: (color) => {
                     bgColor = color.toHexString();
-                    console.log("BG Color Changed:", bgColor);
-                    autoGenerateQR();
-                },
-                move: (color) => {
-                    bgColor = color.toHexString();
-                    console.log("BG Color Moving:", bgColor);
                     autoGenerateQR();
                 }
             });
 
-            // Ensure the # is always present in the input
-            const enforceHash = (inputId) => {
-                const input = document.getElementById(inputId);
-                input.addEventListener("input", () => {
-                    let value = input.value;
-                    if (!value.startsWith("#")) {
-                        value = "#" + value.replace(/^#+/, "");
-                        input.value = value;
-                    }
-                    if (value.length > 7) {
-                        value = value.substring(0, 7);
-                        input.value = value;
-                    }
-                });
-            };
-
-            enforceHash("qrColorPicker");
-            enforceHash("bgColorPicker");
-
-            // Add event listener for pattern change
-            document.getElementById("qrPattern").addEventListener("change", autoGenerateQR);
+            // Initialize QR code on load
+            autoGenerateQR();
         });
 
         // Toggle between light and dark mode
@@ -411,7 +379,7 @@
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
                 const text = document.getElementById("text").value;
-                const size = document.getElementById("size").value;
+                const size = parseInt(document.getElementById("size").value);
                 const errorCorrection = document.getElementById("errorCorrection").value;
                 const pattern = document.getElementById("qrPattern").value;
 
@@ -420,41 +388,49 @@
                     return;
                 }
 
-                const validQrColor = qrColor.startsWith("#") && qrColor.length === 7 ? qrColor : "#000000";
-                const validBgColor = bgColor.startsWith("#") && bgColor.length === 7 ? bgColor : "#ffffff";
-
-                console.log("Generating QR with:", { text, size, errorCorrection, colorDark: validQrColor, colorLight: validBgColor, pattern });
-
-                document.getElementById("qrcode").innerHTML = "";
-                const qrCode = new QRCodeStyling({
-                    width: parseInt(size),
-                    height: parseInt(size),
+                const config = {
+                    width: size,
+                    height: size,
                     data: text,
                     dotsOptions: {
-                        color: validQrColor,
-                        type: pattern === "dots" ? "dots" : pattern === "rounded" ? "rounded" : "square"
+                        color: qrColor,
+                        type: pattern === "dots" ? "dots" : 
+                              pattern === "rounded" ? "rounded" : "square"
                     },
                     backgroundOptions: {
-                        color: validBgColor
+                        color: bgColor
                     },
                     qrOptions: {
                         errorCorrectionLevel: errorCorrection
                     }
-                });
+                };
 
-                qrCode.append(document.getElementById("qrcode"));
+                // Add logo if available
+                if (logoImage) {
+                    config.image = logoImage.src;
+                    config.imageOptions = {
+                        hideBackgroundDots: true,
+                        imageSize: 0.25
+                    };
+                }
 
-                // Save to history when a QR code is generated
+                // Create or update QR code
+                if (!qrCodeInstance) {
+                    qrCodeInstance = new QRCodeStyling(config);
+                    qrCodeInstance.append(document.getElementById("qrcode"));
+                } else {
+                    qrCodeInstance.update(config);
+                }
+
+                // Save to history
                 saveToHistory(text);
 
-                setTimeout(() => {
-                    if (logoImage) addLogoToQR();
-                    gsap.from("#qrcode", { opacity: 0, scale: 0.8, duration: 0.5, ease: "back.out(1.7)" });
-                }, 100);
-            }, 100);
+                // Animation
+                gsap.from("#qrcode", { opacity: 0, scale: 0.8, duration: 0.5 });
+            }, 300);
         }
 
-        // Handle logo upload and preview
+        // Handle logo upload
         function previewLogo() {
             const file = document.getElementById("logo").files[0];
             if (file) {
@@ -465,18 +441,10 @@
                     autoGenerateQR();
                 };
                 reader.readAsDataURL(file);
+            } else {
+                logoImage = null;
+                autoGenerateQR();
             }
-        }
-
-        // Add logo to the center of the QR code
-        function addLogoToQR() {
-            const canvas = document.querySelector("#qrcode canvas");
-            if (!canvas) return;
-            const ctx = canvas.getContext("2d");
-            const logoSize = canvas.width / 4;
-            const x = (canvas.width - logoSize) / 2;
-            const y = (canvas.height - logoSize) / 2;
-            ctx.drawImage(logoImage, x, y, logoSize, logoSize);
         }
 
         // Show loading spinner
@@ -491,47 +459,25 @@
             document.querySelectorAll(".action-buttons button").forEach(btn => btn.disabled = false);
         }
 
-        // Download QR code in selected format
+        // Download QR code
         async function downloadQR() {
             const format = document.getElementById("downloadFormat").value;
-            const qrCanvas = document.querySelector("#qrcode canvas");
-            if (!qrCanvas) return alert("Generate a QR code first!");
-
-            // Save to history when a QR code is downloaded
             const text = document.getElementById("text").value;
-            saveToHistory(text);
-
+            
+            if (!text) return alert("Please generate a QR code first!");
+            
             showLoadingSpinner();
-
+            
             try {
-                if (format === "png") {
-                    const link = document.createElement("a");
-                    link.href = qrCanvas.toDataURL("image/png");
-                    link.download = "qrcode.png";
-                    link.click();
-                } else if (format === "jpg") {
-                    const canvas = await html2canvas(qrCanvas);
-                    const link = document.createElement("a");
-                    link.href = canvas.toDataURL("image/jpeg");
-                    link.download = "qrcode.jpg";
-                    link.click();
-                } else if (format === "pdf") {
-                    const { width, height } = qrCanvas;
-                    const pdf = new jsPDF({
-                        orientation: width > height ? "landscape" : "portrait",
-                        unit: "px",
-                        format: [width, height]
-                    });
-                    pdf.addImage(qrCanvas.toDataURL("image/png"), "PNG", 0, 0, width, height);
-                    pdf.save("qrcode.pdf");
-                } else if (format === "svg") {
-                    const qrCode = new QRCodeStyling({
+                if (format === "svg") {
+                    const config = {
                         width: parseInt(document.getElementById("size").value),
                         height: parseInt(document.getElementById("size").value),
                         data: text,
                         dotsOptions: {
                             color: qrColor,
-                            type: document.getElementById("qrPattern").value === "dots" ? "dots" : document.getElementById("qrPattern").value === "rounded" ? "rounded" : "square"
+                            type: document.getElementById("qrPattern").value === "dots" ? "dots" : 
+                                  document.getElementById("qrPattern").value === "rounded" ? "rounded" : "square"
                         },
                         backgroundOptions: {
                             color: bgColor
@@ -539,51 +485,121 @@
                         qrOptions: {
                             errorCorrectionLevel: document.getElementById("errorCorrection").value
                         }
-                    });
-                    qrCode.download({ name: "qrcode", extension: "svg" });
-                }
-            } finally {
-                hideLoadingSpinner();
-            }
-        }
-
-        // Share QR code using Web Share API
-        async function shareQR() {
-            const qrCanvas = document.querySelector("#qrcode canvas");
-            if (!qrCanvas) return alert("Generate a QR code first!");
-
-            // Save to history when a QR code is shared
-            const text = document.getElementById("text").value;
-            saveToHistory(text);
-
-            showLoadingSpinner();
-
-            try {
-                const blob = await new Promise(resolve => qrCanvas.toBlob(resolve));
-                const file = new File([blob], "qrcode.png", { type: "image/png" });
-                if (navigator.share) {
-                    await navigator.share({
-                        files: [file],
-                        title: "QR Code",
-                        text: "Check out my QR code!"
-                    });
+                    };
+                    
+                    if (logoImage) {
+                        config.image = logoImage.src;
+                        config.imageOptions = {
+                            hideBackgroundDots: true,
+                            imageSize: 0.25
+                        };
+                    }
+                    
+                    const qr = new QRCodeStyling(config);
+                    qr.download({ name: "qrcode", extension: "svg" });
                 } else {
-                    alert("Sharing not supported on this browser.");
+                    const canvas = await new Promise(resolve => {
+                        qrCodeInstance._canvas.toBlob(blob => {
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement("canvas");
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                const ctx = canvas.getContext("2d");
+                                ctx.drawImage(img, 0, 0);
+                                resolve(canvas);
+                            };
+                            img.src = URL.createObjectURL(blob);
+                        });
+                    });
+                    
+                    const link = document.createElement("a");
+                    link.download = `qrcode.${format}`;
+                    
+                    if (format === "pdf") {
+                        const pdf = new jsPDF({
+                            orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+                            unit: "px",
+                            format: [canvas.width, canvas.height]
+                        });
+                        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, canvas.width, canvas.height);
+                        pdf.save("qrcode.pdf");
+                    } else {
+                        link.href = canvas.toDataURL(`image/${format}`);
+                        link.click();
+                    }
                 }
+                
+                saveToHistory(text);
+            } catch (error) {
+                console.error("Download error:", error);
+                alert("Failed to download QR code");
             } finally {
                 hideLoadingSpinner();
             }
         }
 
-        // Save QR code text to history with timestamp
-        function saveToHistory(text) {
-            if (text && !qrHistory.some(entry => entry.text === text)) {
-                const timestamp = new Date().toLocaleString();
-                qrHistory.unshift({ text, timestamp });
-                qrHistory = qrHistory.slice(0, 5);
-                localStorage.setItem("qrHistory", JSON.stringify(qrHistory));
-                updateHistoryUI();
+        // Share QR code
+        async function shareQR() {
+            const text = document.getElementById("text").value;
+            if (!text) return alert("Please generate a QR code first!");
+            
+            showLoadingSpinner();
+            
+            try {
+                const canvas = await new Promise(resolve => {
+                    qrCodeInstance._canvas.toBlob(blob => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement("canvas");
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext("2d");
+                            ctx.drawImage(img, 0, 0);
+                            resolve(canvas);
+                        };
+                        img.src = URL.createObjectURL(blob);
+                    });
+                });
+                
+                canvas.toBlob(async blob => {
+                    const file = new File([blob], "qrcode.png", { type: "image/png" });
+                    if (navigator.share) {
+                        await navigator.share({
+                            files: [file],
+                            title: "QR Code",
+                            text: text
+                        });
+                    } else {
+                        alert("Web Share API not supported in your browser");
+                    }
+                });
+                
+                saveToHistory(text);
+            } catch (error) {
+                console.error("Share error:", error);
+            } finally {
+                hideLoadingSpinner();
             }
+        }
+
+        // Save to history with timestamp
+        function saveToHistory(text) {
+            if (!text) return;
+            
+            const now = new Date();
+            const timestamp = now.toLocaleString();
+            const existingIndex = qrHistory.findIndex(item => item.text === text);
+            
+            if (existingIndex >= 0) {
+                qrHistory[existingIndex].timestamp = timestamp;
+            } else {
+                qrHistory.unshift({ text, timestamp });
+                if (qrHistory.length > 5) qrHistory.pop();
+            }
+            
+            localStorage.setItem("qrHistory", JSON.stringify(qrHistory));
+            updateHistoryUI();
         }
 
         // Clear history
@@ -602,34 +618,26 @@
                     <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
                 </div>
             `;
-            qrHistory.forEach((entry, index) => {
+            
+            qrHistory.forEach((item, index) => {
                 const div = document.createElement("div");
                 div.className = "history-item";
                 div.innerHTML = `
-                    <span>${entry.text.substring(0, 30) + (entry.text.length > 30 ? "..." : "")}</span>
-                    <span class="timestamp">${entry.timestamp}</span>
+                    <span>${item.text.length > 30 ? item.text.substring(0, 30) + "..." : item.text}</span>
+                    <span class="timestamp">${item.timestamp}</span>
                 `;
                 div.onclick = () => {
-                    document.getElementById("text").value = entry.text;
+                    document.getElementById("text").value = item.text;
                     autoGenerateQR();
                 };
                 historyDiv.appendChild(div);
-                gsap.from(div, { opacity: 0, y: 20, duration: 0.5, delay: index * 0.1 });
+                gsap.from(div, { opacity: 0, y: 20, duration: 0.3, delay: index * 0.1 });
             });
         }
 
-        // Save to history on Enter key (optional)
-        document.getElementById("text").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                const text = document.getElementById("text").value;
-                saveToHistory(text);
-            }
-        });
-
-        // Initial history load and animations
+        // Initial load
         updateHistoryUI();
-        gsap.from(".toggle-mode", { opacity: 0, y: -20, duration: 0.5 });
-        gsap.from(".container", { opacity: 0, scale: 0.9, duration: 0.7, ease: "power2.out" });
+        gsap.from(".container", { opacity: 0, y: 20, duration: 0.5 });
     </script>
 </body>
 </html>
