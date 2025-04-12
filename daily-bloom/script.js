@@ -29,16 +29,20 @@ function getTodayKey() {
 // Initialize today's progress
 function initializeToday() {
     const today = getTodayKey();
+    const lastReset = localStorage.getItem('lastReset') || '';
+    if (lastReset !== today) {
+        data.progress = {};
+        localStorage.setItem('lastReset', today);
+    }
     if (!data.progress[today]) {
         data.progress[today] = {};
         data.habits.forEach(habit => {
-            data.progress[today][habit.id] = true; // Set all to true for testing
+            data.progress[today][habit.id] = false; // Start unchecked
         });
         saveData();
     }
     console.log('After initializeToday:', data.progress[today]);
 }
-
 // Render habits
 function renderHabits() {
     const habitList = document.querySelector('#habit-list');
