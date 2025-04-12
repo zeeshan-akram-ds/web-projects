@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Daily Bloom: A micro habit tracker to build small daily habits with a nature-inspired UI.">
+    <title>Daily Bloom - Micro Habit Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-wrapper">
+      <header id="header">
+        <h1>Daily Bloom 🌱</h1>
+      </header>
+  
+      <main id="main-content">
+        <section id="habit-section">
+          <h2>Today's Habits</h2>
+          <button id="add-habit-btn">+ Add Habit</button>
+          <ul id="habit-list"></ul>
+        </section>
+        <button id="dark-mode-toggle">🌙</button>
+        <section id="progress-section">
+            <h2>Your Progress</h2>
+            <div id="progress-bar">
+                <div id="progress-fill">
+                    <span id="progress-percentage">0%</span>
+                </div>
+            </div>
+            <div id="progress-message">😐 Let’s get started!</div>
+            <div id="progress-details">Complete your habits to see your progress grow.</div>
+            <div class="action-buttons">
+                <button id="weekly-view-btn">Weekly View 📅</button>
+                <button id="export-btn">Export Progress 📄</button>
+                <button id="speak-btn">Speak Progress 🔊</button>
+            </div>
+        </section>
+      </main>
+    </div>
+    <script src="script.js"></script>
+  </body>  
+</html>
