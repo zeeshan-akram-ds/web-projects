@@ -18,7 +18,12 @@ import re
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit.components.v1 as components
-
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+import os
+from math import pi
+import uuid
 # =============================================
 # CONFIGURATION AND CONSTANTS
 # =============================================
@@ -1262,11 +1267,12 @@ def render_love_memory_journal():
     col1, col2 = st.columns(2)
     
     with col1:
+        unique_suffix = str(uuid.uuid4())[:8]
         # Add a new memory form
         st.markdown("<h3>Add a New Memory</h3>", unsafe_allow_html=True)
-        memory_date = st.date_input("When did this happen?", datetime.now())
-        memory_title = st.text_input("Title your memory")
-        memory_description = st.text_area("Describe this beautiful moment")
+        memory_date = st.date_input("When did this happen?", datetime.now(), key=f"memory_date_input_{unique_suffix}")
+        memory_title = st.text_input("Title your memory", key=f"memory_title_input_{unique_suffix}")
+        memory_description = st.text_area("Describe this beautiful moment", key=f"memory_desc_input_{unique_suffix}")
         
         if st.button("Save This Memory"):
             # Create a unique key for this memory
@@ -1331,7 +1337,7 @@ def render_photo_gallery():
     with col1:
         st.markdown("<h3>Add a New Photo</h3>", unsafe_allow_html=True)
         photo_date = st.date_input("Date", datetime.now(), key="photo_date")
-        photo_caption = st.text_input("Caption", key="photo_caption")
+        photo_caption = st.text_input("Caption", key="photo_caption_key")
         photo_file = st.file_uploader("Upload Photo", type=["jpg", "jpeg", "png"])
         
         if st.button("Add to Gallery") and photo_file:
@@ -1584,7 +1590,7 @@ def render_future_calendar():
         st.markdown("<h3>Add to Our Calendar</h3>", unsafe_allow_html=True)
         
         with st.form("add_event_form"):
-            event_date = st.date_input("Date", min_value=datetime.now())
+            event_date = st.date_input("Date", min_value=datetime.now(), key="unique_key_name")
             event_title = st.text_input("Title")
             event_details = st.text_area("Details")
             
@@ -1796,7 +1802,540 @@ def set_animated_background():
         """,
         unsafe_allow_html=True
     )
+def render_personalized_compliments():
+    """Generates personalized compliments when button is clicked"""
+    st.markdown("<h3 style='text-align: center; color: #ff4b5c;'>✨ Words From My Heart ✨</h3>", unsafe_allow_html=True)
+    
+    # List of personalized compliments - add as many as you like!
+    compliments = [
+        "Your smile lights up my entire world, even on the darkest days.",
+        "The way you laugh makes my heart skip a beat every single time.",
+        "Your strength and resilience inspire me to be a better person.",
+        "The touch of your hand still gives me butterflies after all this time.",
+        "Your kindness to others shows the beautiful soul you truly are.",
+        "The way you look at me makes me feel like the luckiest person alive.",
+        "Your intelligence and wit amaze me more each day.",
+        "I fall in love with your beautiful eyes all over again every morning.",
+        "The passion you bring to everything you do is absolutely captivating.",
+        "Your creativity and imagination bring so much color to our life together.",
+        "The way you care for our family shows the depth of your amazing heart.",
+        "Your patience and understanding make you an incredible partner.",
+        "The sound of your voice is still my favorite melody after all these years.",
+        "Your thoughtfulness in the little things makes every day special.",
+        "The comfort I feel in your embrace is the safest place I know.",
+        "Your intuition and wisdom guide us through life's challenges.",
+        "The way you pursue your dreams makes me endlessly proud.",
+        "Your natural beauty takes my breath away, inside and out.",
+        "The gentle way you love me heals parts of me I didn't know were broken.",
+        "Your sense of adventure keeps our life exciting and full of wonder."
+    ]
+    
+    # Button to generate a random compliment
+    if st.button("💖 What I Love About You Today 💖", key="compliment_button"):
+        import random
+        
+        # Create a colorful container for the compliment
+        st.markdown("""
+        <style>
+        .compliment-box {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 10px -10px #ff9a9e;
+            }
+            to {
+                box-shadow: 0 0 20px 5px #ff9a9e;
+            }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Select a random compliment
+        chosen_compliment = random.choice(compliments)
+        
+        # Display the compliment with animation
+        st.markdown(f"""
+        <div class="compliment-box">
+            <p style="font-size: 1.2rem; color: #7d2a42; font-style: italic;">"{chosen_compliment}"</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Add subtle heart animation
+        st.markdown("""
+        <style>
+        .heart {
+            font-size: 20px;
+            color: #ff4b5c;
+            display: inline-block;
+            animation: beat .5s infinite alternate;
+        }
+        @keyframes beat {
+            to { transform: scale(1.2); }
+        }
+        </style>
+        <div style="text-align: center;">
+            <span class="heart">❤️</span>
+        </div>
+        """, unsafe_allow_html=True)
 
+def render_interactive_love_wordcloud():
+    """Render a beautiful interactive word cloud for your romantic app."""
+
+    # 💬 Predefined romantic words with frequency
+    words_dict = {
+        "Beautiful": 120,
+        "My Queen": 110,
+        "Hug": 90,
+        "Smile": 85,
+        "Forever": 100,
+        "Wifey": 130,
+        "Laughter": 70,
+        "Cute": 95,
+        "Adore": 80,
+        "Together": 105,
+        "Sweetheart": 75,
+        "Sunshine": 115,
+        "Lovely": 90,
+        "Cherish": 65,
+        "Kiss": 125,
+        "Date": 55,
+        "Warmth": 60,
+        "Memories": 70,
+        "Angel": 95,
+        "My Love": 140
+    }
+
+    # 📍 Section title
+    st.markdown("<h2 style='text-align: center; color: #e91e63;'>💖 Our Love Word Cloud 💖</h2>", unsafe_allow_html=True)
+
+    # 🎛️ Sliders for customization
+    with st.expander("🎨 Customize Your Word Cloud", expanded=True):
+        max_words = st.slider("Max Words", min_value=5, max_value=30, value=20)
+        font_scale = st.slider("Font Scale", min_value=1, max_value=5, value=2)
+
+    # 🎨 Color function for romantic feel
+    def love_colors(word, font_size, position, orientation, font_path, random_state):
+        return f"hsl({random.randint(0, 360)}, 80%, 65%)"
+
+    # 🌈 Create the WordCloud
+    wc = WordCloud(
+        width=800,
+        height=400,
+        max_words=max_words,
+        relative_scaling=0.5,
+        normalize_plurals=True,
+        color_func=love_colors,
+        prefer_horizontal=0.95,
+        scale=font_scale,
+        background_color='white'
+    ).generate_from_frequencies(words_dict)
+
+    # 🖼️ Display in Streamlit
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.imshow(wc, interpolation='bilinear')
+    ax.axis("off")
+    st.pyplot(fig)
+
+
+def wish_upon_a_star():
+    """
+    Create an interactive night sky where Faryal can make wishes
+    that get saved and can be granted over time.
+    """
+    st.markdown("## ✨ Wish Upon a Star ✨")
+    st.markdown("### Make a wish, my love, and I'll make it come true...")
+    
+    # File to store wishes
+    WISHES_FILE = "wishes.json"
+    
+    # Load existing wishes
+    def load_wishes():
+        if os.path.exists(WISHES_FILE):
+            try:
+                with open(WISHES_FILE, "r") as f:
+                    return json.load(f)
+            except:
+                return {"wishes": []}
+        else:
+            return {"wishes": []}
+    
+    # Save wishes
+    def save_wish(wish_text):
+        wishes_data = load_wishes()
+        new_wish = {
+            "id": len(wishes_data["wishes"]) + 1,
+            "text": wish_text,
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "granted": False,
+            "grant_date": None
+        }
+        wishes_data["wishes"].append(new_wish)
+        
+        with open(WISHES_FILE, "w") as f:
+            json.dump(wishes_data, f, indent=4)
+    
+    # Grant a wish
+    def grant_wish(wish_id):
+        wishes_data = load_wishes()
+        for wish in wishes_data["wishes"]:
+            if wish["id"] == wish_id:
+                wish["granted"] = True
+                wish["grant_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                break
+        
+        with open(WISHES_FILE, "w") as f:
+            json.dump(wishes_data, f, indent=4)
+    
+    # Generate interactive night sky
+    def create_night_sky(num_stars=100, highlighted_stars=None):
+        if highlighted_stars is None:
+            highlighted_stars = []
+            
+        # Set up the figure
+        fig, ax = plt.subplots(figsize=(10, 6), facecolor='#051033')
+        ax.set_facecolor('#051033')  # Dark blue night sky
+        
+        # Generate random star positions but make them consistent
+        # Use a fixed seed to make star positions consistent between renders
+        np.random.seed(42)  
+        stars_x = np.random.uniform(0, 10, num_stars)
+        stars_y = np.random.uniform(0, 6, num_stars)
+        stars_size = np.random.uniform(5, 25, num_stars)
+        
+        # Draw stars
+        star_colors = ['#FFFFFF', '#FFFFEE', '#EEEEFF', '#FFEEEE']
+        colors = [random.choice(star_colors) for _ in range(num_stars)]
+        
+        for i in range(num_stars):
+            if i in highlighted_stars:
+                # Highlighted star (the one being wished upon)
+                star = Circle((stars_x[i], stars_y[i]), stars_size[i]/100, 
+                           color='#FFD700', alpha=0.9)  # Gold color
+                # Add a subtle glow effect
+                glow = Circle((stars_x[i], stars_y[i]), stars_size[i]/50, 
+                           color='#FFD700', alpha=0.3)
+                ax.add_patch(glow)
+            else:
+                star = Circle((stars_x[i], stars_y[i]), stars_size[i]/200, 
+                           color=colors[i], alpha=0.8)
+            ax.add_patch(star)
+            
+            # If this is a wished star, add a small label with the wish number
+            if i in highlighted_stars:
+                wish_index = highlighted_stars.index(i)
+                ax.text(stars_x[i], stars_y[i] + 0.2, f"#{wish_index+1}", 
+                        color='#FFD700', fontsize=8, ha='center')
+        
+        # Remove axes and set limits
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 6)
+        ax.axis('off')
+        
+        return fig
+    
+    # Create tabs for wishing and viewing wishes
+    tab1, tab2 = st.tabs(["✨ Make a Wish", "📜 View Wishes"])
+    
+    with tab1:
+        wishes_data = load_wishes()
+        # Get star indices for existing wishes
+        highlighted_stars = []
+        
+        # Assign a consistent star index to each wish
+        for i, wish in enumerate(wishes_data["wishes"]):
+            # Use the wish ID as a seed to get a consistent star index
+            random.seed(wish["id"])
+            highlighted_stars.append(random.randint(0, 49))
+        
+        # Display the night sky with all wishes highlighted
+        st.markdown("### Your wishes among the stars ✨")
+        fig = create_night_sky(num_stars=50, highlighted_stars=highlighted_stars)
+        st.pyplot(fig)
+        
+        # Add text input for new wish
+        wish_text = st.text_area("What's your wish, Faryal?", 
+                              placeholder="Type your wish here...",
+                              key="wish_input")
+        
+        # Add button to submit wish
+        if st.button("✨ Make My Wish", key="submit_wish"):
+            if wish_text:
+                # Save the wish
+                save_wish(wish_text)
+                st.success("Your wish has been sent to the stars! ✨")
+                st.balloons()  # Show balloons for a fun effect
+                st.rerun()  # Rerun to update the sky with the new wish
+            else:
+                st.warning("Please enter a wish first.")
+    
+    with tab2:
+        st.markdown("### Your Wishes Among the Stars")
+        
+        # Load and display all wishes
+        wishes_data = load_wishes()
+        
+        if not wishes_data["wishes"]:
+            st.info("No wishes have been made yet. Go to the 'Make a Wish' tab to create your first wish!")
+        else:
+            # Create two columns - one for pending wishes, one for granted wishes
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("#### ⏳ Waiting to Come True")
+                
+                pending_wishes = [wish for wish in wishes_data["wishes"] if not wish["granted"]]
+                if not pending_wishes:
+                    st.info("All wishes have been granted! 🌟")
+                
+                for wish in pending_wishes:
+                    with st.container():
+                        st.markdown(f"""
+                        <div style='background-color:rgba(0,0,50,0.3); padding:10px; border-radius:10px; margin-bottom:10px;'>
+                            <p style='font-style:italic;'>"{wish['text']}"</p>
+                            <p style='font-size:0.8em; color:#AAAAAA;'>Made on {wish['date']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Only show the grant button if you're the one viewing
+                        if st.button(f"✨ Grant This Wish", key=f"grant_{wish['id']}"):
+                            grant_wish(wish['id'])
+                            st.success("Wish granted! ✨")
+                            st.experimental_rerun()
+            
+            with col2:
+                st.markdown("#### 🌟 Wishes Come True")
+                
+                granted_wishes = [wish for wish in wishes_data["wishes"] if wish["granted"]]
+                if not granted_wishes:
+                    st.info("No wishes have been granted yet.")
+                
+                for wish in granted_wishes:
+                    with st.container():
+                        st.markdown(f"""
+                        <div style='background-color:rgba(50,50,0,0.3); padding:10px; border-radius:10px; margin-bottom:10px;'>
+                            <p style='font-style:italic;'>"{wish['text']}"</p>
+                            <p style='font-size:0.8em; color:#AAAAAA;'>Made on {wish['date']}</p>
+                            <p style='font-size:0.8em; color:gold;'>✨ Granted on {wish['grant_date']} ✨</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+def render_love_language_visualization():
+    """
+    Create a beautiful visualization showing how you and your partner
+    express love to each other based on the five love languages.
+    """
+    st.markdown("## 💖 Our Love Languages 💖")
+    st.markdown("### How we express our love to each other")
+    
+    # Create a container for the visualization
+    viz_container = st.container()
+        
+    # The five love languages
+    love_languages = [
+        "Words of Affirmation", 
+        "Quality Time", 
+        "Receiving Gifts",
+        "Acts of Service", 
+        "Physical Touch"
+    ]
+    
+    # Initialize default values from session state or with defaults
+    if 'your_scores' not in st.session_state:
+        st.session_state.your_scores = [7, 8, 5, 9, 10]  # Default values for you
+    
+    if 'faryal_scores' not in st.session_state:
+        st.session_state.faryal_scores = [9, 8, 7, 6, 10]  # Default values for Faryal
+    
+    # Create two tabs - one for visualization, one for settings
+    tab1, tab2 = st.tabs(["💖 Visualization", "⚙️ Settings"])
+    
+    with tab1:
+        with viz_container:
+            display_love_language_chart(love_languages, 
+                                        st.session_state.your_scores, 
+                                        st.session_state.faryal_scores)
+    
+    with tab2:
+        st.markdown("### Adjust Our Love Language Scores")
+        st.markdown("Rate each love language on a scale of 1-10 based on how much it matters to each of you.")
+        
+        # Create two columns for you and your partner
+        col1, col2 = st.columns(2)
+        
+        # Update sliders
+        new_your_scores = []
+        new_faryal_scores = []
+        
+        with col1:
+            st.markdown("#### Your Love Languages")
+            for i, language in enumerate(love_languages):
+                new_value = st.slider(
+                    f"You - {language}", 
+                    1, 10, 
+                    st.session_state.your_scores[i],
+                    key=f"you_{language}"
+                )
+                new_your_scores.append(new_value)
+        
+        with col2:
+            st.markdown("#### Faryal's Love Languages")
+            for i, language in enumerate(love_languages):
+                new_value = st.slider(
+                    f"Faryal - {language}", 
+                    1, 10, 
+                    st.session_state.faryal_scores[i],
+                    key=f"faryal_{language}"
+                )
+                new_faryal_scores.append(new_value)
+        
+        # Button to update the visualization
+        if st.button("Update Our Love Languages"):
+            st.session_state.your_scores = new_your_scores
+            st.session_state.faryal_scores = new_faryal_scores
+            st.success("Love languages updated! ❤️")
+            
+            # Display a sweet message based on the top love languages
+            your_top = love_languages[np.argmax(new_your_scores)]
+            faryal_top = love_languages[np.argmax(new_faryal_scores)]
+            
+            st.markdown(f"""
+            ### 💖 Love Insight
+            
+            You express love the most through **{your_top}**,  
+            while Faryal feels most loved through **{faryal_top}**.
+            
+            {"That's a beautiful match!" if your_top == faryal_top else "Understanding each other's love languages helps us connect more deeply! ❤️"}
+            """)
+
+def display_love_language_chart(categories, values1, values2):
+    """
+    Create a beautiful radar chart to visualize love languages.
+    
+    Args:
+        categories: List of love language categories
+        values1: Your scores (list of values)
+        values2: Faryal's scores (list of values)
+    """
+    # Number of variables
+    N = len(categories)
+    
+    # Create a list with the angles for each category
+    angles = [n / float(N) * 2 * pi for n in range(N)]
+    angles += angles[:1]  # Close the loop
+    
+    # Create values lists for the plot
+    values1 = values1 + values1[:1]  # Close the loop
+    values2 = values2 + values2[:1]  # Close the loop
+    
+    # Create a polar plot with plotly
+    fig = go.Figure()
+    
+    # Add your data
+    fig.add_trace(go.Scatterpolar(
+        r=values1,
+        theta=categories + [categories[0]],  # Close the loop
+        fill='toself',
+        name='You',
+        line=dict(color='rgba(65, 105, 225, 0.8)', width=2),
+        fillcolor='rgba(65, 105, 225, 0.3)'
+    ))
+    
+    # Add Faryal's data
+    fig.add_trace(go.Scatterpolar(
+        r=values2,
+        theta=categories + [categories[0]],  # Close the loop
+        fill='toself',
+        name='Faryal',
+        line=dict(color='rgba(219, 112, 147, 0.8)', width=2),
+        fillcolor='rgba(219, 112, 147, 0.3)'
+    ))
+    
+    # Customize layout
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 10],
+                showticklabels=False,
+                ticks=''
+            ),
+            angularaxis=dict(
+                rotation=90,  # start from the top
+            )
+        ),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.1,
+            xanchor="center",
+            x=0.5
+        ),
+        margin=dict(l=60, r=60, t=40, b=40),
+        height=500,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+    )
+    
+    # Show the plot
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Add some insights below the chart
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### Your Top Love Languages")
+        # Get the top 2 love languages for you
+        top_yours = sorted(zip(values1[:-1], categories), reverse=True)[:2]
+        for score, language in top_yours:
+            st.markdown(f"- **{language}**: {score}/10")
+    
+    with col2:
+        st.markdown("#### Faryal's Top Love Languages")
+        # Get the top 2 love languages for Faryal
+        top_faryal = sorted(zip(values2[:-1], categories), reverse=True)[:2]
+        for score, language in top_faryal:
+            st.markdown(f"- **{language}**: {score}/10")
+            
+    # Check for matches (where both have high scores)
+    matches = []
+    for i, cat in enumerate(categories):
+        if values1[i] >= 8 and values2[i] >= 8:
+            matches.append(cat)
+    
+    if matches:
+        st.markdown("#### 💖 Your Love Language Matches")
+        st.markdown("You both value these love languages highly:")
+        for match in matches:
+            st.markdown(f"- **{match}** ✨")
+        
+        st.markdown("""
+        <div style='background-color:rgba(219, 112, 147, 0.1); padding:10px; border-radius:10px; margin-top:20px;'>
+            <p style='text-align:center;'>Nurturing your shared love languages creates deeper connection! ❤️</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Add tips based on differing love languages
+    differences = []
+    for i, cat in enumerate(categories):
+        diff = abs(values1[i] - values2[i])
+        if diff >= 3:  # If there's a significant difference
+            differences.append((cat, values1[i], values2[i]))
+    
+    if differences:
+        st.markdown("#### 💭 Love Language Tips")
+        for lang, your_score, faryal_score in differences:
+            if your_score > faryal_score:
+                st.markdown(f"- Faryal may not value **{lang}** as much as you do. Consider expressing love in other ways too.")
+            else:
+                st.markdown(f"- Consider expressing more **{lang}** as Faryal values this highly.")
 # =============================================
 # MAIN APP
 # =============================================
@@ -1864,13 +2403,20 @@ def main():
         # Love stats
         render_love_stats()
 
+    # Add Love Language Visualization here (full width)
+    render_love_language_visualization()
+    
+    # Memory journal section (full width)
+    render_love_memory_journal()
     # Memory journal section (full width)
     render_love_memory_journal()
     
     # Add this in the main() function after render_love_memory_journal()
     render_photo_gallery()
     reasons_i_love_you()
-
+    render_personalized_compliments()
+    render_interactive_love_wordcloud()
+    wish_upon_a_star()
     # Footer
     st.markdown(
         """
