@@ -1,686 +1,660 @@
-def render_constellation_creator():
+def create_surprise_timer():
     """
-    Create a highly customizable and interactive constellation creator
-    that allows Faryal to create personalized star constellations.
+    Creates an impressive countdown timer in the sidebar that reveals a surprise celebration
+    when it reaches zero. Includes animations, confetti, and a custom message.
     """
-    import numpy as np
-    import pandas as pd
-    from PIL import Image
-    from io import BytesIO
-    import base64
-    import matplotlib.pyplot as plt
-    import matplotlib.patheffects as path_effects
-    
-    st.markdown("""
-    <h2 style='text-align: center; color: #8A2BE2;'>
-      <span style='margin-right: 10px'>✨</span>
-      Starlight Constellation Creator
-      <span style='margin-left: 10px'>✨</span>
-    </h2>
-    """, unsafe_allow_html=True)
-    
-    # Initialize session state variables if they don't exist
-    if 'constellation_stars' not in st.session_state:
-        st.session_state.constellation_stars = pd.DataFrame({
-            'x': [], 'y': [], 'size': [], 'color': [], 'name': [], 'description': []
-        })
-    
-    if 'constellation_lines' not in st.session_state:
-        st.session_state.constellation_lines = []
-    
-    if 'last_constellation_action' not in st.session_state:
-        st.session_state.last_constellation_action = None
-    
-    if 'constellation_active_name' not in st.session_state:
-        st.session_state.constellation_active_name = "Our Love Story"
-    
-    if 'constellation_saved' not in st.session_state:
-        st.session_state.constellation_saved = {}
-    
-    if 'drawing_mode' not in st.session_state:
-        st.session_state.drawing_mode = "stars"  # stars, lines, or text
-    
-    if 'background_style' not in st.session_state:
-        st.session_state.background_style = "Midnight Blue"
-    
-    # Custom CSS
+    # CSS for the timer and animations
     st.markdown("""
     <style>
-    .constellation-container {
-        background: linear-gradient(180deg, #0a0a2a 0%, #1a1a4a 100%);
+    /* Timer Styling */
+    .surprise-timer-container {
+        background: linear-gradient(45deg, #ff9a9e, #fad0c4);
         border-radius: 15px;
-        padding: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-        margin-bottom: 20px;
-    }
-    
-    .star-button {
-        background: none;
-        border: none;
-        color: yellow;
-        font-size: 20px;
-        cursor: pointer;
-        transition: transform 0.3s ease;
-    }
-    
-    .star-button:hover {
-        transform: scale(1.5);
-    }
-    
-    .constellation-controls {
-        background: rgba(10, 10, 42, 0.7);
-        border-radius: 10px;
         padding: 15px;
-        margin-top: 15px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        text-align: center;
+        margin: 10px 0;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid #fff;
     }
     
-    .control-title {
-        color: #9370DB;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-size: 14px;
+    .timer-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+        text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+    }
+    
+    .countdown-display {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #5a283d;
+        background: rgba(255,255,255,0.5);
+        border-radius: 10px;
+        padding: 5px 10px;
+        display: inline-block;
+        min-width: 120px;
+        text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
         margin-bottom: 5px;
     }
     
-    .constellation-description {
-        background: rgba(20, 20, 50, 0.6);
-        border-radius: 8px;
-        padding: 10px;
-        color: #E6E6FA;
-        margin-top: 10px;
+    .timer-subtitle {
+        font-size: 0.9rem;
+        color: #5a283d;
         font-style: italic;
+        margin-bottom: 5px;
     }
     
-    .constellation-tab {
-        background: rgba(30, 30, 70, 0.6);
-        border-radius: 8px 8px 0 0;
-        padding: 8px 15px;
-        color: #B0C4DE;
-        display: inline-block;
-        margin-right: 5px;
-        cursor: pointer;
-    }
-    
-    .constellation-tab.active {
-        background: rgba(70, 70, 120, 0.8);
-        color: white;
-    }
-    
-    .star-glow {
-        filter: drop-shadow(0 0 6px rgba(255, 255, 100, 0.8));
-    }
-    
-    @keyframes twinkle {
-        0% { opacity: 0.3; }
-        50% { opacity: 1; }
-        100% { opacity: 0.3; }
-    }
-    
-    .background-star {
+    /* Animated Background */
+    .surprise-timer-container::before {
+        content: "";
         position: absolute;
-        background-color: white;
-        border-radius: 50%;
-        animation: twinkle 3s infinite;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+            to bottom right,
+            rgba(255,255,255,0) 0%,
+            rgba(255,255,255,0.3) 50%,
+            rgba(255,255,255,0) 100%
+        );
+        transform: rotate(45deg);
+        animation: shimmer 3s infinite linear;
+        z-index: 1;
+    }
+    
+    .timer-content {
+        position: relative;
+        z-index: 2;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-50%) translateY(-50%) rotate(45deg); }
+        100% { transform: translateX(50%) translateY(50%) rotate(45deg); }
+    }
+    
+    /* Floating Hearts Animation */
+    .floating-heart {
+        position: absolute;
+        font-size: 1.2rem;
+        animation: float-up 10s linear infinite;
+        opacity: 0;
+        z-index: 0;
+    }
+    
+    @keyframes float-up {
+        0% {
+            transform: translateY(100%) translateX(0) rotate(0deg);
+            opacity: 0;
+        }
+        10% {
+            opacity: 0.7;
+        }
+        90% {
+            opacity: 0.5;
+        }
+        100% {
+            transform: translateY(-100%) translateX(var(--tx)) rotate(var(--rot-end));
+            opacity: 0;
+        }
+    }
+    
+    /* Rose Animation */
+    .rose-container {
+        margin: 20px 0;
+        text-align: center;
+        height: 150px;
+        position: relative;
+        overflow: visible;
+    }
+    
+    .rose {
+        display: inline-block;
+        font-size: 2.5rem;
+        animation: grow-rose 3s ease-out forwards;
+        opacity: 0;
+        transform: scale(0);
+        text-shadow: 0 0 10px rgba(255,0,128,0.5);
+        position: relative;
+        z-index: 10;
+    }
+    
+    .rose-leaf {
+        position: absolute;
+        color: #4CAF50;
+        font-size: 1.5rem;
+        opacity: 0;
+        z-index: 5;
+        pointer-events: none;
+    }
+    
+    @keyframes grow-rose {
+        0% {
+            opacity: 0;
+            transform: scale(0) rotate(-45deg);
+        }
+        50% {
+            opacity: 0.5;
+            transform: scale(0.5) rotate(-20deg);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) rotate(0);
+        }
+    }
+    
+    @keyframes grow-leaf {
+        0% {
+            opacity: 0;
+            transform: scale(0);
+        }
+        50% {
+            opacity: 0.7;
+            transform: scale(0.7);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    /* Surprise Reveal Animation */
+    .surprise-message {
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 10px;
+        background: linear-gradient(45deg, #ff9a9e, #fad0c4, #fad0c4, #ff9a9e);
+        background-size: 300% 300%;
+        color: #5a283d;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: reveal-message 1s ease-out forwards,
+                   gradient-shift 5s ease infinite;
+    }
+    
+    @keyframes reveal-message {
+        0% {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes gradient-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    /* Confetti Animation */
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background-color: var(--color);
+        opacity: 0;
+        animation: confetti-fall var(--fall-duration) linear forwards,
+                   confetti-shake var(--shake-duration) ease-in-out infinite alternate;
+        z-index: 1000;
+        pointer-events: none;
+    }
+    
+    @keyframes confetti-fall {
+        0% {
+            opacity: 1;
+            top: -10%;
+        }
+        80% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            top: 100%;
+        }
+    }
+    
+    @keyframes confetti-shake {
+        0% {
+            transform: translateX(0);
+        }
+        100% {
+            transform: translateX(var(--shake-direction));
+        }
+    }
+    
+    /* Heartbeat Effect */
+    .heartbeat {
+        display: inline-block;
+        animation: heartbeat 1s infinite;
+    }
+    
+    @keyframes heartbeat {
+        0% { transform: scale(1); }
+        25% { transform: scale(1.1); }
+        40% { transform: scale(1); }
+        60% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    /* Button Styling */
+    .cute-button {
+        background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+        color: #5a283d;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 15px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        display: inline-block;
+        margin-top: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .cute-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 7px 15px rgba(0,0,0,0.15);
+    }
+    
+    .cute-button:active {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    }
+    
+    .cute-button::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+            to bottom right,
+            rgba(255,255,255,0) 0%,
+            rgba(255,255,255,0.3) 50%,
+            rgba(255,255,255,0) 100%
+        );
+        transform: rotate(45deg);
+        transition: all 0.3s ease;
+        z-index: 1;
+    }
+    
+    .cute-button:hover::after {
+        animation: button-shimmer 1s forwards;
+    }
+    
+    @keyframes button-shimmer {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    
+    .cute-button span {
+        position: relative;
+        z-index: 2;
+    }
+    
+    /* Notification indicator that something is coming */
+    .timer-indicator {
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 10px;
+        margin-top: 10px;
+        border: 1px dashed #ff6b95;
+        animation: pulse-border 2s infinite;
+    }
+    
+    @keyframes pulse-border {
+        0% { border-color: #ff6b95; }
+        50% { border-color: #ff9cc3; }
+        100% { border-color: #ff6b95; }
+    }
+    
+    /* Timer preview animation */
+    .coming-soon-hearts {
+        height: 30px;
+        position: relative;
+        margin: 10px 0;
+    }
+    
+    .preview-heart {
+        position: absolute;
+        font-size: 1rem;
+        opacity: 0;
+        left: 50%;
+        animation: preview-beat 3s infinite;
+    }
+    
+    .preview-heart:nth-child(1) {
+        animation-delay: 0s;
+    }
+    
+    .preview-heart:nth-child(2) {
+        animation-delay: 1s;
+    }
+    
+    .preview-heart:nth-child(3) {
+        animation-delay: 2s;
+    }
+    
+    @keyframes preview-beat {
+        0% {
+            opacity: 0;
+            transform: translateY(0) translateX(-50%) scale(0.5);
+        }
+        20% {
+            opacity: 1;
+            transform: translateY(-10px) translateX(-50%) scale(1);
+        }
+        80% {
+            opacity: 1;
+            transform: translateY(-20px) translateX(-50%) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-30px) translateX(-50%) scale(0.5);
+        }
+    }
+    
+    /* Main notification panel for the surprise timer */
+    .timer-notification {
+        background: linear-gradient(135deg, #ffcdd2, #f8bbd0);
+        border-radius: 15px;
+        padding: 15px;
+        margin: 20px 0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border: 2px solid #fff;
+        animation: notification-glow 3s infinite alternate;
+    }
+    
+    @keyframes notification-glow {
+        0% { box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3); }
+        100% { box-shadow: 0 4px 20px rgba(255, 105, 180, 0.7); }
+    }
+    
+    .timer-notification-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #d81b60;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+    
+    .timer-notification-content {
+        font-size: 1rem;
+        color: #5a283d;
+        text-align: center;
+        line-height: 1.5;
     }
     </style>
     """, unsafe_allow_html=True)
-    
-    # Background style selector
-    st.sidebar.markdown("## ✨ Constellation Settings")
-    
-    background_options = {
-        "Midnight Blue": "#0a0a2a",
-        "Deep Space": "#000020",
-        "Cosmic Purple": "#2d0a42",
-        "Northern Lights": "#0a2a1a",
-        "Sunset Horizon": "#2a0a1a",
-        "Dawn Sky": "#1a0a2a"
-    }
-    
-    selected_bg = st.sidebar.selectbox(
-        "Background Theme",
-        options=list(background_options.keys()),
-        index=list(background_options.keys()).index(st.session_state.background_style)
-    )
-    
-    st.session_state.background_style = selected_bg
-    
-    # Star customization
-    st.sidebar.markdown("### ⭐ Star Style")
-    star_color = st.sidebar.color_picker("Star Color", "#FFD700")
-    star_size = st.sidebar.slider("Star Size", 1, 15, 5)
-    
-    # Create tabs for different modes
-    tabs_col1, tabs_col2, tabs_col3, tabs_col4 = st.columns(4)
-    
-    with tabs_col1:
-        stars_tab_class = "constellation-tab active" if st.session_state.drawing_mode == "stars" else "constellation-tab"
-        stars_tab = st.markdown(f"<div class='{stars_tab_class}' id='stars-tab'>✨ Add Stars</div>", unsafe_allow_html=True)
-        if stars_tab:
-            st.session_state.drawing_mode = "stars"
-    
-    with tabs_col2:
-        lines_tab_class = "constellation-tab active" if st.session_state.drawing_mode == "lines" else "constellation-tab"
-        lines_tab = st.markdown(f"<div class='{lines_tab_class}' id='lines-tab'>🔗 Connect Stars</div>", unsafe_allow_html=True)
-        if lines_tab:
-            st.session_state.drawing_mode = "lines"
+
+    # Initialize session state variables
+    if 'timer_start' not in st.session_state:
+        st.session_state.timer_start = datetime.now()
+        
+    if 'timer_duration' not in st.session_state:
+        st.session_state.timer_duration = 10  # Default 10 minutes
+        
+    if 'surprise_revealed' not in st.session_state:
+        st.session_state.surprise_revealed = False
+        
+    if 'timer_expired' not in st.session_state:
+        st.session_state.timer_expired = False
+        
+    if 'reset_counter' not in st.session_state:
+        st.session_state.reset_counter = 0
+
+    # Function to reset the timer
+    def reset_timer():
+        st.session_state.timer_start = datetime.now()
+        st.session_state.surprise_revealed = False
+        st.session_state.timer_expired = False
+        st.session_state.reset_counter += 1
+
+    # Function to generate floating hearts HTML
+    def generate_floating_hearts(count=10):
+        hearts = []
+        for i in range(count):
+            delay = random.uniform(0, 10)
+            duration = random.uniform(7, 15)
+            left = random.uniform(5, 95)
+            tx = random.uniform(-100, 100)
+            rot_start = random.uniform(-45, 45)
+            rot_end = random.uniform(-180, 180)
+            heart_type = random.choice(['❤️', '💕', '💗', '💓', '💖'])
             
-    with tabs_col3:
-        text_tab_class = "constellation-tab active" if st.session_state.drawing_mode == "text" else "constellation-tab"
-        text_tab = st.markdown(f"<div class='{text_tab_class}' id='text-tab'>📝 Add Text</div>", unsafe_allow_html=True)
-        if text_tab:
-            st.session_state.drawing_mode = "text"
-            
-    with tabs_col4:
-        template_tab_class = "constellation-tab active" if st.session_state.drawing_mode == "template" else "constellation-tab"
-        template_tab = st.markdown(f"<div class='{template_tab_class}' id='template-tab'>💫 Templates</div>", unsafe_allow_html=True)
-        if template_tab:
-            st.session_state.drawing_mode = "template"
-    
-    # Main constellation canvas
-    canvas_col, controls_col = st.columns([3, 1])
-    
-    # Function to render the constellation
-    def render_constellation(stars_df, lines, background_color, figsize=(10, 6)):
-        fig, ax = plt.subplots(figsize=figsize, facecolor=background_color)
-        ax.set_facecolor(background_color)
-        
-        # Hide axes
-        ax.set_axis_off()
-        
-        # Set plot limits
-        ax.set_xlim(-10, 110)
-        ax.set_ylim(-10, 110)
-        
-        # Add background stars (random smaller stars)
-        np.random.seed(42)  # for reproducibility
-        bg_stars_x = np.random.uniform(0, 100, 200)
-        bg_stars_y = np.random.uniform(0, 100, 200)
-        bg_stars_size = np.random.uniform(0.1, 0.8, 200)
-        
-        ax.scatter(bg_stars_x, bg_stars_y, s=bg_stars_size, color='white', alpha=0.5)
-        
-        # Draw connecting lines
-        for line in lines:
-            if len(line) >= 2:
-                line_stars = stars_df.loc[stars_df.index.isin(line)]
-                if not line_stars.empty and len(line_stars) >= 2:
-                    x_vals = line_stars['x'].values
-                    y_vals = line_stars['y'].values
-                    ax.plot(x_vals, y_vals, '-', color='rgba(255, 255, 255, 0.5)', linewidth=1.5, alpha=0.7)
-        
-        # Add the custom stars
-        if not stars_df.empty:
-            for idx, star in stars_df.iterrows():
-                # Main star
-                main_star = ax.scatter(star['x'], star['y'], s=star['size']*20, color=star['color'], 
-                              alpha=0.9, edgecolor='white', linewidth=0.5)
-                
-                # Glow effect
-                main_star.set_path_effects([
-                    path_effects.SimpleLineShadow(offset=(0, 0), shadow_color=star['color'], alpha=0.6),
-                    path_effects.Normal()
-                ])
-                
-                # Add star name if present
-                if star['name']:
-                    text = ax.text(star['x'], star['y'] - 3, star['name'], 
-                                  ha='center', va='top', color='white', fontsize=8)
-                    text.set_path_effects([
-                        path_effects.withStroke(linewidth=2, foreground=background_color)
-                    ])
-        
-        # Add constellation name
-        if st.session_state.constellation_active_name:
-            title_text = ax.text(50, 95, st.session_state.constellation_active_name, 
-                               ha='center', va='top', color='white', fontsize=16, weight='bold')
-            title_text.set_path_effects([
-                path_effects.withStroke(linewidth=3, foreground=background_color)
+            heart = f"""
+            <div class="floating-heart" style="
+                left: {left}%;
+                animation-delay: {delay}s;
+                animation-duration: {duration}s;
+                --tx: {tx}px;
+                --rot-end: {rot_end}deg;
+                transform: rotate({rot_start}deg);
+            ">{heart_type}</div>
+            """
+            hearts.append(heart)
+        return ''.join(hearts)
+
+    # Function to generate confetti HTML
+    def generate_confetti(count=100):
+        confetti_html = []
+        for i in range(count):
+            x = random.uniform(0, 100)
+            fall_duration = random.uniform(3, 8)
+            shake_duration = random.uniform(0.5, 2)
+            shake_direction = f"{random.uniform(-100, 100)}px"
+            color = random.choice([
+                '#ff9a9e', '#fad0c4', '#f6d365', '#fda085', '#f6d365', 
+                '#fbc2eb', '#a18cd1', '#fbc2eb', '#a6c1ee', '#fbc2eb'
             ])
+            width = random.uniform(5, 15)
+            height = random.uniform(5, 15)
+            border_radius = random.choice(['50%', '0'])
+            rotation = random.uniform(0, 360)
+
+            confetti_piece = f"""
+            <div class="confetti" style="
+                left: {x}%;
+                --fall-duration: {fall_duration}s;
+                --shake-duration: {shake_duration}s;
+                --shake-direction: {shake_direction};
+                --color: {color};
+                width: {width}px;
+                height: {height}px;
+                border-radius: {border_radius};
+                transform: rotate({rotation}deg);
+            "></div>
+            """
+            confetti_html.append(confetti_piece)
+        return ''.join(confetti_html)
+
+    # Function to generate rose animation - FIXED to ensure proper rendering
+    def generate_rose_animation():
+        # Simplified rose HTML with better positioning
+        rose_html = """
+        <div class="rose-container">
+            <div class="rose" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">🌹</div>
+        """
         
-        plt.tight_layout()
+        # Add some leaves around the rose with simplified and more reliable positioning
+        for i in range(6):
+            angle = i * 60
+            distance = 50 + i * 5  # More predictable distance
+            delay = 0.5 + i * 0.2  # More predictable delay
+            
+            # Calculate positions with simpler math to avoid potential errors
+            x = int(distance * math.cos(math.radians(angle)))
+            y = int(distance * math.sin(math.radians(angle)))
+            
+            leaf_html = f"""
+            <div class="rose-leaf" style="
+                left: calc(50% + {x}px);
+                top: calc(50% + {y}px);
+                animation: grow-leaf 2s ease-out {delay}s forwards;
+                transform: rotate({angle}deg);
+            ">🍃</div>
+            """
+            rose_html += leaf_html
         
-        # Convert plot to image
-        buf = BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches='tight')
-        buf.seek(0)
-        plt.close(fig)
-        
-        # Encode the image to base64 string
-        img_str = base64.b64encode(buf.read()).decode()
-        
-        return f"data:image/png;base64,{img_str}"
+        rose_html += "</div>"
+        return rose_html
+
+    # Generate surprise messages
+    surprise_messages = [
+        "I've been waiting to tell you how special you are! 💕",
+        "You make my heart smile every single day! 💖",
+        "Just wanted to remind you that you're absolutely amazing! 💗",
+        "Your love makes every moment magical! 💓",
+        "I cherish every moment we spend together! 💘"
+    ]
     
-    # Create templates
-    def get_template_stars(template_name):
-        templates = {
-            "Faryal Name": [
-                # F
-                {'x': 20, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 20, 'y': 70, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 20, 'y': 60, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 20, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 25, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 30, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 25, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 30, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                # A
-                {'x': 40, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 45, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 50, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 42, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 48, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                # R
-                {'x': 60, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 60, 'y': 70, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 60, 'y': 60, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 60, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 65, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 70, 'y': 75, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 65, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 65, 'y': 60, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 70, 'y': 55, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                # Y
-                {'x': 80, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 85, 'y': 70, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 90, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 85, 'y': 60, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 85, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                # A
-                {'x': 100, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 105, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 110, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 102, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 108, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                # L
-                {'x': 120, 'y': 80, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 120, 'y': 70, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 120, 'y': 60, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 120, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 125, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 130, 'y': 50, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-            ],
-            "Heart": [
-                {'x': 50, 'y': 70, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 40, 'y': 80, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 30, 'y': 70, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 35, 'y': 60, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 40, 'y': 50, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 50, 'y': 40, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 60, 'y': 50, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 65, 'y': 60, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 70, 'y': 70, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-                {'x': 60, 'y': 80, 'size': 5, 'color': '#FF69B4', 'name': '', 'description': ''},
-            ],
-            "Infinity": [
-                {'x': 30, 'y': 60, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 20, 'y': 50, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 20, 'y': 70, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 40, 'y': 50, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 40, 'y': 70, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 50, 'y': 60, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 60, 'y': 50, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 60, 'y': 70, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 70, 'y': 50, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 70, 'y': 70, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-                {'x': 80, 'y': 60, 'size': 5, 'color': '#00BFFF', 'name': '', 'description': ''},
-            ],
-            "Crown": [
-                {'x': 50, 'y': 80, 'size': 7, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 30, 'y': 70, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 40, 'y': 75, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 50, 'y': 70, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 60, 'y': 75, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 70, 'y': 70, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 35, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 65, 'y': 65, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-                {'x': 50, 'y': 60, 'size': 5, 'color': '#FFD700', 'name': '', 'description': ''},
-            ],
-            "Our Story": [
-                {'x': 30, 'y': 80, 'size': 7, 'color': '#9370DB', 'name': 'First Date', 'description': 'When we first met'},
-                {'x': 45, 'y': 75, 'size': 6, 'color': '#FF69B4', 'name': 'First Kiss', 'description': 'Under the stars'},
-                {'x': 60, 'y': 70, 'size': 8, 'color': '#00BFFF', 'name': 'Proposal', 'description': 'When I asked...'},
-                {'x': 75, 'y': 65, 'size': 7, 'color': '#FFD700', 'name': 'Wedding', 'description': 'Our special day'},
-                {'x': 90, 'y': 60, 'size': 5, 'color': '#FF4500', 'name': 'Anniversary', 'description': 'Every year together'},
-                {'x': 30, 'y': 50, 'size': 5, 'color': '#32CD32', 'name': 'First Home', 'description': 'Our sanctuary'},
-                {'x': 50, 'y': 40, 'size': 6, 'color': '#FF8C00', 'name': 'Future', 'description': 'Dreams ahead'},
-            ]
-        }
-        
-        if template_name in templates:
-            return templates[template_name]
-        return []
+    # Calculate remaining time
+    end_time = st.session_state.timer_start + timedelta(minutes=st.session_state.timer_duration)
+    remaining = end_time - datetime.now()
+    minutes, seconds = divmod(max(0, remaining.total_seconds()), 60)  # Prevent negative values
     
-    # Create template lines
-    def get_template_lines(template_name):
-        # Each line is a list of indices in the stars dataframe
-        templates = {
-            "Faryal Name": [
-                # F
-                [0, 1, 2, 3],  # Vertical line
-                [0, 5, 6],      # Top horizontal
-                [2, 7, 8],      # Middle horizontal
-                # A
-                [9, 10, 11],    # Left diagonal
-                [11, 12, 10],   # Right diagonal
-                [13, 14],       # Middle horizontal
-                # R
-                [15, 16, 17, 18],  # Vertical line
-                [15, 19, 20],      # Top curve
-                [17, 21, 22, 23],  # Bottom curve
-                # Y
-                [24, 25, 26],      # Top V
-                [25, 27, 28],      # Bottom stem
-                # A
-                [29, 30, 31],      # Left and right diagonal
-                [32, 33],          # Middle horizontal
-                # L
-                [34, 35, 36, 37, 38, 39]  # L shape
-            ],
-            "Heart": [
-                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
-            ],
-            "Infinity": [
-                [0, 1, 2, 0, 3, 4, 5, 6, 7, 5, 8, 9, 10]
-            ],
-            "Crown": [
-                [1, 2, 0, 4, 5],  # Top of crown
-                [1, 6, 8, 7, 5],  # Bottom of crown
-                [2, 3, 4]         # Middle connection
-            ],
-            "Our Story": [
-                [0, 1, 2, 3, 4],  # Main storyline
-                [0, 5, 6, 4]      # Alternative path
-            ]
-        }
-        
-        if template_name in templates:
-            return templates[template_name]
-        return []
+    # Check if timer has expired
+    if remaining.total_seconds() <= 0 and not st.session_state.timer_expired:
+        st.session_state.timer_expired = True
+        st.session_state.surprise_revealed = True
     
-    # Draw the constellation in the canvas column
-    with canvas_col:
-        st.markdown("<div class='constellation-container'>", unsafe_allow_html=True)
-        
-        # Preview the constellation using matplotlib
-        if not st.session_state.constellation_stars.empty or st.session_state.constellation_lines:
-            bg_color = background_options[st.session_state.background_style]
-            img_data = render_constellation(
-                st.session_state.constellation_stars, 
-                st.session_state.constellation_lines,
-                bg_color
-            )
-            
-            st.markdown(f"""
-            <div style="display: flex; justify-content: center; margin-bottom: 10px;">
-                <img src="{img_data}" style="max-width: 100%; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.3);">
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div style="height: 300px; display: flex; justify-content: center; align-items: center; color: #aaa;">
-                <div style="text-align: center;">
-                    <div style="font-size: 40px;">✨</div>
-                    <div>Create your constellation by adding stars or selecting a template</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Interactive canvas for clicking
-        if st.session_state.drawing_mode in ["stars", "lines", "text"]:
-            st.markdown("<div class='constellation-controls'>", unsafe_allow_html=True)
-            
-            # Create a clickable canvas
-            click_col1, click_col2 = st.columns([3, 1])
-            
-            with click_col1:
-                st.write("📌 Click below to place stars:")
-                
-                # Create a placeholder for the clickable area
-                canvas_placeholder = st.empty()
-                canvas_placeholder.markdown("""
-                <div id="clickable-canvas" style="height: 200px; background: rgba(10, 10, 30, 0.5); 
-                     border-radius: 8px; position: relative; cursor: crosshair;"></div>
-                """, unsafe_allow_html=True)
-                
-                # Create buttons for adding stars at coordinate positions
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    x_coord = st.number_input("X Position (0-100)", min_value=0, max_value=100, value=50, step=5)
-                
-                with col2:
-                    y_coord = st.number_input("Y Position (0-100)", min_value=0, max_value=100, value=50, step=5)
-                
-                if st.session_state.drawing_mode == "stars":
-                    if st.button("Add Star at Position"):
-                        new_star = {
-                            'x': x_coord,
-                            'y': y_coord,
-                            'size': star_size,
-                            'color': star_color,
-                            'name': '',
-                            'description': ''
-                        }
-                        
-                        # Add the star to the dataframe
-                        st.session_state.constellation_stars = pd.concat([
-                            st.session_state.constellation_stars,
-                            pd.DataFrame([new_star])
-                        ], ignore_index=True)
-                        
-                        st.session_state.last_constellation_action = "added_star"
-                        st.experimental_rerun()
-                
-                elif st.session_state.drawing_mode == "lines":
-                    # Select stars to connect
-                    if not st.session_state.constellation_stars.empty:
-                        star_options = [f"Star {i} at ({row['x']}, {row['y']})" + (f" - {row['name']}" if row['name'] else "") 
-                                         for i, row in st.session_state.constellation_stars.iterrows()]
-                        
-                        star1 = st.selectbox("Connect from:", ["Select a star"] + star_options)
-                        star2 = st.selectbox("Connect to:", ["Select a star"] + star_options)
-                        
-                        if st.button("Connect Stars") and star1 != "Select a star" and star2 != "Select a star":
-                            # Extract indices from selection strings
-                            idx1 = int(star1.split(" ")[1])
-                            idx2 = int(star2.split(" ")[1])
-                            
-                            # Check if we should start a new line or continue an existing one
-                            new_line = True
-                            for i, line in enumerate(st.session_state.constellation_lines):
-                                if line[-1] == idx1:
-                                    # Continue this line
-                                    st.session_state.constellation_lines[i].append(idx2)
-                                    new_line = False
-                                    break
-                            
-                            if new_line:
-                                st.session_state.constellation_lines.append([idx1, idx2])
-                            
-                            st.session_state.last_constellation_action = "added_line"
-                            st.experimental_rerun()
-                
-                elif st.session_state.drawing_mode == "text":
-                    # Add labels/names to stars
-                    if not st.session_state.constellation_stars.empty:
-                        star_options = [f"Star {i} at ({row['x']}, {row['y']})" + (f" - {row['name']}" if row['name'] else "") 
-                                        for i, row in st.session_state.constellation_stars.iterrows()]
-                        
-                        selected_star = st.selectbox("Select star to label:", ["Select a star"] + star_options)
-                        
-                        if selected_star != "Select a star":
-                            idx = int(selected_star.split(" ")[1])
-                            star_name = st.text_input("Star name:", 
-                                                    value=st.session_state.constellation_stars.iloc[idx]['name'] 
-                                                    if idx < len(st.session_state.constellation_stars) else "")
-                            
-                            star_desc = st.text_area("Star description (memory/meaning):", 
-                                                    value=st.session_state.constellation_stars.iloc[idx]['description']
-                                                    if idx < len(st.session_state.constellation_stars) else "")
-                            
-                            if st.button("Save Star Information"):
-                                st.session_state.constellation_stars.at[idx, 'name'] = star_name
-                                st.session_state.constellation_stars.at[idx, 'description'] = star_desc
-                                st.session_state.last_constellation_action = "updated_star_info"
-                                st.experimental_rerun()
-            
-            with click_col2:
-                # Controls for managing the constellation
-                st.markdown("<div class='control-title'>Constellation Name</div>", unsafe_allow_html=True)
-                constellation_name = st.text_input("", value=st.session_state.constellation_active_name, key="constellation_name_input")
-                
-                if constellation_name != st.session_state.constellation_active_name:
-                    st.session_state.constellation_active_name = constellation_name
-                    st.experimental_rerun()
-                
-                st.markdown("<div class='control-title'>Actions</div>", unsafe_allow_html=True)
-                
-                # Clear button
-                if st.button("✨ Clear All"):
-                    st.session_state.constellation_stars = pd.DataFrame({
-                        'x': [], 'y': [], 'size': [], 'color': [], 'name': [], 'description': []
-                    })
-                    st.session_state.constellation_lines = []
-                    st.session_state.last_constellation_action = "cleared"
-                    st.experimental_rerun()
-                
-                # Remove last star or line
-                if st.button("↩️ Undo Last"):
-                    if st.session_state.last_constellation_action == "added_star" and not st.session_state.constellation_stars.empty:
-                        st.session_state.constellation_stars = st.session_state.constellation_stars.iloc[:-1]
-                    elif st.session_state.last_constellation_action == "added_line" and st.session_state.constellation_lines:
-                        st.session_state.constellation_lines = st.session_state.constellation_lines[:-1]
-                    st.experimental_rerun()
-                
-                # Save constellation
-                if st.button("💾 Save Constellation"):
-                    if not st.session_state.constellation_stars.empty:
-                        st.session_state.constellation_saved[st.session_state.constellation_active_name] = {
-                            'stars': st.session_state.constellation_stars.copy(),
-                            'lines': st.session_state.constellation_lines.copy(),
-                            'bg_style': st.session_state.background_style
-                        }
-                        st.success(f"Saved constellation '{st.session_state.constellation_active_name}'!")
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Template selection mode
-        elif st.session_state.drawing_mode == "template":
-            st.markdown("<div class='constellation-controls'>", unsafe_allow_html=True)
-            
-            template_options = ["Faryal Name", "Heart", "Infinity", "Crown", "Our Story"]
-            selected_template = st.selectbox("Choose a template:", template_options)
-            
-            if st.button("Apply Template"):
-                # Get template stars and lines
-                template_stars = get_template_stars(selected_template)
-                template_lines = get_template_lines(selected_template)
-                
-                # Convert to DataFrame
-                stars_df = pd.DataFrame(template_stars)
-                
-                # Update session state
-                st.session_state.constellation_stars = stars_df
-                st.session_state.constellation_lines = template_lines
-                st.session_state.constellation_active_name = selected_template
-                st.session_state.last_constellation_action = "applied_template"
-                
-                st.rerun()
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Controls column
-    with controls_col:
-        st.markdown("<div class='constellation-controls'>", unsafe_allow_html=True)
-        
-        # Load saved constellations
-        if st.session_state.constellation_saved:
-            st.markdown("<div class='control-title'>Your Saved Constellations</div>", unsafe_allow_html=True)
-            saved_options = list(st.session_state.constellation_saved.keys())
-            selected_saved = st.selectbox("Load constellation:", ["Select..."] + saved_options)
-            
-            if selected_saved != "Select..." and st.button("Load"):
-                saved_data = st.session_state.constellation_saved[selected_saved]
-                st.session_state.constellation_stars = saved_data['stars']
-                st.session_state.constellation_lines = saved_data['lines']
-                st.session_state.constellation_active_name = selected_saved
-                st.session_state.background_style = saved_data['bg_style']
-                st.session_state.last_constellation_action = "loaded_saved"
-                st.experimental_rerun()
-        
-        # Export options
-        st.markdown("<div class='control-title'>Export Your Constellation</div>", unsafe_allow_html=True)
-        
-        # Generate image for download
-        if not st.session_state.constellation_stars.empty:
-            bg_color = background_options[st.session_state.background_style]
-            img_data = render_constellation(
-                st.session_state.constellation_stars, 
-                st.session_state.constellation_lines,
-                bg_color,
-                figsize=(8, 5)
-            )
-            
-            download_btn = st.download_button(
-                label="📥 Download as Image",
-                data=base64.b64decode(img_data.split(',')[1]),
-                file_name=f"{st.session_state.constellation_active_name.replace(' ', '_')}_constellation.png",
-                mime="image/png"
-            )
-        
-        # Display star information if available
-        if not st.session_state.constellation_stars.empty:
-            stars_with_info = st.session_state.constellation_stars[st.session_state.constellation_stars['name'] != '']
-            
-            if not stars_with_info.empty:
-                st.markdown("<div class='control-title'>Star Information</div>", unsafe_allow_html=True)
-                
-                for _, star in stars_with_info.iterrows():
-                    if star['name']:
-                        st.markdown(f"""
-                        <div class="constellation-description">
-                            <div style="color: {star['color']}; font-weight: bold;">⭐ {star['name']}</div>
-                            <div>{star['description']}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Meaning of your constellation
-        st.markdown("<div class='constellation-controls' style='margin-top: 15px;'>", unsafe_allow_html=True)
-        st.markdown("<div class='control-title'>The Meaning of Your Stars</div>", unsafe_allow_html=True)
-        
-        meaning_text = st.text_area(
-            "What does this constellation mean to you?",
-            value="This constellation represents our love story and the journey we've shared together. Each star is a memory, each connection a thread in the tapestry of our relationship. Like the stars, our love is eternal and bright.",
-            height=150
-        )
-        
-        # Display a special message for Faryal
-        st.markdown("""
-        <div style='text-align: center; margin-top: 15px; font-style: italic; color: #e6e6fa;'>
-            Like this constellation, my love for you, Faryal, is written in the stars.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Help text at the bottom
+    # Add a visible notification FIRST in the main content area
     st.markdown("""
-    <div style='opacity: 0.7; text-align: center; margin-top: 20px; font-size: 14px;'>
-        Create your own constellation by adding stars, connecting them, and naming them after special moments in your relationship. 
-        You can also choose from templates or save your creations to revisit later.
+    <div class="timer-notification">
+        <div class="timer-notification-title">❤️ Special Surprise Coming! ❤️</div>
+        <div class="timer-notification-content">
+            A romantic surprise is waiting for you! Keep an eye on the timer in the sidebar. 
+            When it reaches zero, something special will appear just for you!
+        </div>
+        <div class="coming-soon-hearts">
+            <div class="preview-heart">❤️</div>
+            <div class="preview-heart">💕</div>
+            <div class="preview-heart">💖</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Add a special surprise for Faryal that appears occasionally
-    if random.random() < 0.2:  # 20% chance to show on each load
-        st.balloons()
-        st.markdown("""
-        <div style='text-align: center; margin-top: 20px; color: #ff69b4; font-size: 18px; animation: twinkle 2s infinite;'>
-            ✨ I love you to the stars and beyond, Faryal! ✨
-        </div>
-        """, unsafe_allow_html=True)
+    # Display the timer in sidebar
+    with st.sidebar:
+        st.markdown('<div class="surprise-timer-container">', unsafe_allow_html=True)
+        st.markdown('<div class="timer-content">', unsafe_allow_html=True)
+        
+        # Generate and add floating hearts
+        st.markdown(generate_floating_hearts(15), unsafe_allow_html=True)
+        
+        st.markdown('<div class="timer-title"><span class="heartbeat">❤️</span> Surprise Timer <span class="heartbeat">❤️</span></div>', unsafe_allow_html=True)
+        
+        if remaining.total_seconds() > 0:
+            st.markdown(f'<div class="countdown-display">{int(minutes):02}:{int(seconds):02}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="timer-subtitle">Something special is coming...</div>', unsafe_allow_html=True)
+            
+            # Add indicator of what's coming
+            st.markdown("""
+            <div class="timer-indicator">
+                <div style="text-align: center; font-weight: bold; color: #d81b60;">
+                    Wait for it...
+                </div>
+                <div class="coming-soon-hearts">
+                    <div class="preview-heart">💖</div>
+                    <div class="preview-heart">💝</div>
+                    <div class="preview-heart">💓</div>
+                </div>
+                <div style="text-align: center; font-size: 0.9rem; color: #5a283d; margin-top: 5px;">
+                    A romantic surprise just for you!
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="countdown-display">00:00</div>', unsafe_allow_html=True)
+            st.markdown('<div class="timer-subtitle">Surprise is here!</div>', unsafe_allow_html=True)
+        
+        # Timer control buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Reset Timer", key=f"reset_timer_{st.session_state.reset_counter}"):
+                reset_timer()
+        with col2:
+            # Changed button label to be more obvious
+            if st.button("Show Surprise Now", key=f"quick_test_{st.session_state.reset_counter}"):
+                st.session_state.surprise_revealed = True
+                st.session_state.timer_expired = True
+        
+        st.markdown('</div></div>', unsafe_allow_html=True)
+        
+        # Display the surprise if timer has expired
+        if st.session_state.surprise_revealed:
+            # Add confetti
+            st.markdown(generate_confetti(80), unsafe_allow_html=True)
+            
+            # Random selection of a surprise message
+            surprise_message = random.choice(surprise_messages)
+            
+            # Display rose animation with fixed implementation
+            st.markdown(generate_rose_animation(), unsafe_allow_html=True)
+            
+            # Display the surprise message
+            st.markdown(f'<div class="surprise-message">{surprise_message}</div>', unsafe_allow_html=True)
+            
+            # Additional animated elements for extra charm
+            st.markdown("""
+            <div style="text-align: center; margin-top: 20px; animation: fadeIn 2s forwards;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">✨✨✨</div>
+                <div style="font-size: 1.2rem; color: #5a283d; margin-bottom: 15px;">
+                    Just a little reminder of how much you mean to me!
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Add a cute button with event handler fix to avoid showing alert
+            st.markdown("""
+            <div style="text-align: center;">
+                <button class="cute-button" id="special-message-btn">
+                    <span>Click Me! 💖</span>
+                </button>
+                <script>
+                    // Use a more secure approach with an event listener
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const specialBtn = document.getElementById('special-message-btn');
+                        if (specialBtn) {
+                            specialBtn.addEventListener('click', function() {
+                                // Create a cute message instead of an alert
+                                const messageDiv = document.createElement('div');
+                                messageDiv.style.padding = '10px';
+                                messageDiv.style.background = 'rgba(255, 182, 193, 0.8)';
+                                messageDiv.style.borderRadius = '10px';
+                                messageDiv.style.marginTop = '10px';
+                                messageDiv.style.textAlign = 'center';
+                                messageDiv.style.animation = 'fadeIn 0.5s forwards';
+                                messageDiv.innerHTML = '<span style="font-weight: bold; color: #d81b60;">I think you are amazing! 💖</span>';
+                                
+                                // Add message after the button
+                                this.parentNode.appendChild(messageDiv);
+                                
+                                // Remove after 3 seconds
+                                setTimeout(() => {
+                                    messageDiv.style.animation = 'fadeOut 0.5s forwards';
+                                    setTimeout(() => messageDiv.remove(), 500);
+                                }, 3000);
+                            });
+                        }
+                    });
+                </script>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # Return whether the surprise is revealed (can be used by the main app)
+    return st.session_state.surprise_revealed
